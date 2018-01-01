@@ -1,5 +1,5 @@
 
-use std::os::raw::{c_int, c_ulong, c_uint};
+use std::os::raw::{c_int, c_ulong, c_uint, c_long};
 use std::sync::Arc;
 
 use x11::xlib;
@@ -7,6 +7,7 @@ use x11::xlib;
 use display::DisplayHandle;
 use color::{CreatedColormap, ColormapID};
 use visual::Visual;
+use event::EventMask;
 
 pub struct WindowBuilder {
     display_handle: Arc<DisplayHandle>,
@@ -139,6 +140,14 @@ impl InputOutputWindow {
 
         unsafe {
             xlib::XMapWindow(self.display_handle.raw_display(), self.window_id);
+        }
+    }
+
+    pub fn select_input(&mut self, event_mask: EventMask) {
+        // TODO: check errors
+
+        unsafe {
+            xlib::XSelectInput(self.display_handle.raw_display(), self.window_id, event_mask.bits());
         }
     }
 }

@@ -3,10 +3,13 @@ extern crate x11_wrapper;
 use std::thread;
 use std::time::Duration;
 
+use x11_wrapper::display::Display;
+use x11_wrapper::event::EventMask;
+
 fn main() {
     println!("Hello world");
 
-    let display = x11_wrapper::display::Display::new().unwrap();
+    let mut display = Display::new().unwrap();
 
     println!("display string: {:?}", display.display_string());
     println!("protocol version: {}", display.protocol_version());
@@ -23,9 +26,22 @@ fn main() {
         .build_input_output_window()
         .unwrap();
 
+    let event_mask =  EventMask::KEY_PRESS
+                    | EventMask::KEY_RELEASE
+                    | EventMask::BUTTON_PRESS
+                    | EventMask::BUTTON_RELEASE
+                    | EventMask::POINTER_MOTION
+                    | EventMask::STRUCTURE_NOTIFY
+                    | EventMask::VISIBILITY_CHANGE;
+
+    window.select_input(event_mask);
     window.map_window();
 
     display.flush_output_buffer();
 
-    thread::sleep(Duration::from_millis(12000));
+    loop {
+        let event = display.read_event_blocking();
+
+        println!("{:?}", event.event());
+    }
 }
