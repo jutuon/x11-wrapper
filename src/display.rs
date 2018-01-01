@@ -8,6 +8,7 @@ use std::ffi::CStr;
 use x11::xlib;
 
 use screen::Screen;
+use visual::Visual;
 
 pub struct DisplayHandle {
     raw_display: *mut xlib::Display,
@@ -20,6 +21,10 @@ impl DisplayHandle {
             raw_display,
             _marker: PhantomData
         })
+    }
+
+    pub(crate) fn raw_display(&self) -> *mut xlib::Display {
+        self.raw_display
     }
 }
 
@@ -161,6 +166,21 @@ impl Display {
         }
     }
 
+    pub fn visual_from_id(&self, visual_id: xlib::VisualID) -> Option<Visual> {
+        Visual::new(self.display_handle.clone(), visual_id)
+    }
 
+
+    pub fn flush_output_buffer(&self) {
+        unsafe {
+            xlib::XFlush(self.raw_display());
+        }
+    }
+
+    pub fn sync(&self) {
+        unsafe {
+            xlib::XSync(self.raw_display(), xlib::False);
+        }
+    }
 }
 

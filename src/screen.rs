@@ -1,14 +1,14 @@
 
-use std::ptr;
 use std::os::raw::{c_int, c_ulong};
 use std::sync::Arc;
 
 use x11::xlib;
 
-use utils::Colormap;
+use color::{ DefaultColormap, CreatedColormap };
 use display::DisplayHandle;
 use error::{ QueryResult, QueryError };
-
+use visual::Visual;
+use window::WindowBuilder;
 
 pub struct Screen {
     display_handle: Arc<DisplayHandle>,
@@ -45,8 +45,8 @@ impl Screen {
         }
     }
 
-    pub fn default_colormap(&self) -> Colormap {
-        Colormap::new(unsafe {
+    pub fn default_colormap(&self) -> Option<DefaultColormap> {
+        DefaultColormap::new(unsafe {
             xlib::XDefaultColormapOfScreen(self.raw_screen)
         })
     }
@@ -57,8 +57,22 @@ impl Screen {
         }
     }
 
-    pub fn default_visual(&self) {
-        unimplemented!()
+    pub fn default_visual(&self) -> Option<Visual> {
+        let id = unsafe {
+            let visual_ptr = xlib::XDefaultVisualOfScreen(self.raw_screen);
+
+            if visual_ptr.is_null() {
+                return None;
+            }
+
+            xlib::XVisualIDFromVisual(visual_ptr)
+        };
+
+        if id == 0 {
+            None
+        } else {
+            Visual::new(self.display_handle.clone(), id)
+        }
     }
 
     pub fn does_backing_store(&self) -> QueryResult<BackingStore> {
@@ -137,8 +151,29 @@ impl Screen {
         }
     }
 
-    pub fn root_window(&self) {
-        unimplemented!()
+    pub fn root_window_id(&self) -> Option<xlib::Window> {
+        let id = unsafe {
+            xlib::XRootWindowOfScreen(self.raw_screen)
+        };
+
+        if id == 0 {
+            None
+        } else {
+            Some(id)
+        }
+    }
+
+    /// Parent of created window will be root window of this screen.
+    ///
+    /// Returns error if this Screen does not support `visual`.
+    pub fn create_window_builder(&self, visual: Visual) -> Result<WindowBuilder, ()> {
+
+        let created_colormap = CreatedColormap::create(self.display_handle.clone(), self, &visual)?;
+
+        let window_builder = WindowBuilder::new(self.display_handle.clone(), self.root_window_id().unwrap_or(0))?
+            .set_colormap_and_visual(created_colormap, visual);
+
+        Ok(window_builder)
     }
 }
 
