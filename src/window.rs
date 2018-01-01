@@ -143,6 +143,15 @@ impl InputOutputWindow {
     }
 }
 
+impl Drop for InputOutputWindow {
+    fn drop(&mut self) {
+        unsafe {
+            // TODO: check errors
+            xlib::XDestroyWindow(self.display_handle.raw_display(), self.window_id);
+        }
+    }
+}
+
 
 pub trait CommonAttributes {
     // win-gravity, event-mask, do-not-propagate-mask

@@ -1,14 +1,10 @@
 
-use std::ptr;
-use std::os::raw::{c_int, c_ulong, c_long, c_void};
+use std::os::raw::{c_int, c_void};
 use std::sync::Arc;
-use std::marker::PhantomData;
-use std::ffi::CStr;
 use std::mem;
 
 use x11::xlib;
 
-use screen::Screen;
 use display::DisplayHandle;
 
 pub struct Visual {
