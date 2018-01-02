@@ -11,6 +11,7 @@ use screen::Screen;
 use visual::Visual;
 use event::EventBuffer;
 
+#[derive(Debug)]
 pub struct DisplayHandle {
     raw_display: *mut xlib::Display,
     _marker: PhantomData<xlib::Display>,

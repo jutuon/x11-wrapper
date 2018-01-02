@@ -43,6 +43,14 @@ fn main() {
     let window_title = Text::new(&display, "Hello world".to_string()).unwrap();
     window.set_window_name(window_title);
 
+    let window_icon_text = Text::new(&display, "Window".to_string()).unwrap();
+    window.set_window_icon_name(window_icon_text);
+
+    window = window.normal_hints_configurator()
+        .unwrap()
+        .set_min_window_size(640, 480)
+        .end();
+
     window.map_window();
 
     display.flush_output_buffer();

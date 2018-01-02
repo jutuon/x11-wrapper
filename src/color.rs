@@ -32,7 +32,7 @@ impl ColormapID for DefaultColormap {
 }
 
 
-
+#[derive(Debug)]
 pub struct CreatedColormap {
     display_handle: Arc<DisplayHandle>,
     colormap: xlib::Colormap,
