@@ -8,6 +8,9 @@ use display::DisplayHandle;
 use color::{CreatedColormap, ColormapID};
 use visual::Visual;
 use event::EventMask;
+use screen::Screen;
+
+const ERROR_TOP_LEVEL_WINDOW: &'static str = "window is not top level window";
 
 pub struct WindowBuilder {
     display_handle: Arc<DisplayHandle>,
@@ -18,11 +21,12 @@ pub struct WindowBuilder {
     y: c_int,
     width: c_uint,
     height: c_uint,
+    top_level_window: bool,
 }
 
 impl WindowBuilder {
     /// Returns error if parent window id is zero.
-    pub(crate) fn new(display_handle: Arc<DisplayHandle>, parent_window_id: xlib::Window) -> Result<Self, ()> {
+    pub(crate) fn new(display_handle: Arc<DisplayHandle>, parent_window_id: xlib::Window, top_level_window: bool) -> Result<Self, ()> {
 
         if parent_window_id == 0 {
             return Err(());
@@ -56,6 +60,7 @@ impl WindowBuilder {
             y: 0,
             width: 640,
             height: 480,
+            top_level_window,
         })
     }
 
@@ -123,6 +128,7 @@ impl WindowBuilder {
                 display_handle: self.display_handle,
                 colormap,
                 window_id,
+                top_level_window: self.top_level_window,
             })
         }
     }
@@ -132,6 +138,7 @@ pub struct InputOutputWindow {
     display_handle: Arc<DisplayHandle>,
     colormap: Option<CreatedColormap>,
     window_id: xlib::Window,
+    top_level_window: bool,
 }
 
 impl InputOutputWindow {
@@ -150,6 +157,154 @@ impl InputOutputWindow {
             xlib::XSelectInput(self.display_handle.raw_display(), self.window_id, event_mask.bits());
         }
     }
+
+    pub fn map_raised(&mut self) {
+        // TODO: can generate BadWindow errors
+        unsafe {
+            xlib::XMapRaised(self.display_handle.raw_display(), self.window_id);
+        }
+    }
+
+    pub fn set_stack_mode(&mut self, stack_mode: StackMode) {
+        self.set_sibling_and_stack_mode::<InputOutputWindow>(None, stack_mode);
+    }
+
+    /// If sibling is `None`, sibling configuration option is not set.
+    /// If sibling is `Some(sibling)`, the window in sibling argument must
+    /// really be a sibling window or BadMatch error is generated.
+    pub fn set_sibling_and_stack_mode<W: WindowID>(&mut self, sibling: Option<&W>, stack_mode: StackMode) {
+        let (sibling, configure_mask) = if let Some(w) = sibling {
+            (w.window_id(), xlib::CWSibling | xlib::CWStackMode)
+        } else {
+            (0, xlib::CWStackMode)
+        };
+
+        let mut changes = xlib::XWindowChanges {
+            x: 0,
+            y: 0,
+            width: 1,
+            height: 1,
+            border_width: 0,
+            sibling,
+            stack_mode: stack_mode as c_int,
+        };
+
+        unsafe {
+            xlib::XConfigureWindow(
+                self.display_handle.raw_display(),
+                self.window_id(),
+                configure_mask as c_uint,
+                &mut changes
+            );
+        }
+    }
+
+
+    pub fn lower(&mut self) {
+        unsafe {
+            xlib::XLowerWindow(self.display_handle.raw_display(), self.window_id);
+        }
+    }
+
+    pub fn raise(&mut self) {
+        unsafe {
+            xlib::XRaiseWindow(self.display_handle.raw_display(), self.window_id);
+        }
+    }
+
+    pub fn circulate_subwindows_up(&mut self) {
+        unsafe {
+            xlib::XCirculateSubwindowsUp(self.display_handle.raw_display(), self.window_id);
+        }
+    }
+
+    pub fn circulate_subwindows_down(&mut self) {
+        unsafe {
+            xlib::XCirculateSubwindowsDown(self.display_handle.raw_display(), self.window_id);
+        }
+    }
+
+    /// Panics if window is not top level window.
+    pub fn iconify(&mut self, screen: &Screen) -> Result<(), ()> {
+        if self.top_level_window {
+            unsafe {
+                let status = xlib::XIconifyWindow(self.display_handle.raw_display(), self.window_id, screen.screen_number());
+
+                if status == 0 {
+                    Err(())
+                } else {
+                    Ok(())
+                }
+            }
+        } else {
+            panic!(ERROR_TOP_LEVEL_WINDOW)
+        }
+    }
+
+    /// Panics if window is not top level window.
+    pub fn withdraw(&mut self, screen: &Screen) -> Result<(), ()> {
+        if self.top_level_window {
+            unsafe {
+                let status = xlib::XWithdrawWindow(self.display_handle.raw_display(), self.window_id, screen.screen_number());
+
+                if status == 0 {
+                    Err(())
+                } else {
+                    Ok(())
+                }
+            }
+        } else {
+            panic!(ERROR_TOP_LEVEL_WINDOW)
+        }
+    }
+
+    /// Panics if window is not top level window.
+    pub fn set_stack_mode_top_level_window(&mut self, screen: &Screen, stack_mode: StackMode) -> Result<(), ()> {
+        self.set_sibling_and_stack_mode_top_level_window::<InputOutputWindow>(screen, None, stack_mode)
+    }
+
+    /// Panics if window is not top level window.
+    ///
+    /// If sibling is `None`, sibling configuration option is not set.
+    /// If sibling is `Some(sibling)`, the window in sibling argument must
+    /// really be a sibling window or BadMatch error is generated.
+    pub fn set_sibling_and_stack_mode_top_level_window<W: WindowID>(&mut self, screen: &Screen, sibling: Option<&W>, stack_mode: StackMode) -> Result<(), ()>{
+        if !self.top_level_window {
+            panic!(ERROR_TOP_LEVEL_WINDOW)
+        }
+
+        let (sibling, configure_mask) = if let Some(w) = sibling {
+            (w.window_id(), xlib::CWSibling | xlib::CWStackMode)
+        } else {
+            (0, xlib::CWStackMode)
+        };
+
+        let mut changes = xlib::XWindowChanges {
+            x: 0,
+            y: 0,
+            width: 1,
+            height: 1,
+            border_width: 0,
+            sibling,
+            stack_mode: stack_mode as c_int,
+        };
+
+        unsafe {
+            let status = xlib::XReconfigureWMWindow(
+                self.display_handle.raw_display(),
+                self.window_id(),
+                screen.screen_number(),
+                configure_mask as c_uint,
+                &mut changes
+            );
+
+            if status == 0 {
+                Err(())
+            } else {
+                Ok(())
+            }
+        }
+    }
 }
 
 impl Drop for InputOutputWindow {
@@ -161,9 +316,21 @@ impl Drop for InputOutputWindow {
     }
 }
 
-
-pub trait CommonAttributes {
-    // win-gravity, event-mask, do-not-propagate-mask
-    // override-redirect, cursor
+impl WindowID for InputOutputWindow {
+    fn window_id(&self) -> xlib::Window {
+        self.window_id
+    }
 }
 
+pub trait WindowID {
+    fn window_id(&self) -> xlib::Window;
+}
+
+#[repr(i16)]
+pub enum StackMode {
+    Above = xlib::Above as i16,
+    Below = xlib::Below as i16,
+    TopIf = xlib::TopIf as i16,
+    BottomIf = xlib::BottomIf as i16,
+    Opposite = xlib::Opposite as i16,
+}

@@ -4,7 +4,8 @@ use std::thread;
 use std::time::Duration;
 
 use x11_wrapper::display::Display;
-use x11_wrapper::event::EventMask;
+use x11_wrapper::event::{ EventMask, SimpleEvent };
+use x11_wrapper::window::StackMode;
 
 fn main() {
     println!("Hello world");
@@ -42,8 +43,19 @@ fn main() {
     display.flush_output_buffer();
 
     loop {
-        let event = display.read_event_blocking();
+        let event = display.read_event_blocking().event().into_simple_event();
 
-        println!("{:?}", event.event().into_simple_event());
+        println!("{:?}", &event);
+
+        match &event {
+            // Key Q
+            &SimpleEvent::KeyRelease { keycode: 24 } => {
+                //window.set_stack_mode(StackMode::Below);
+                //window.lower();
+                window.iconify(&default_screen);
+                //window.set_stack_mode_top_level_window(&default_screen, StackMode::Below)
+            }
+            _ => (),
+        }
     }
 }

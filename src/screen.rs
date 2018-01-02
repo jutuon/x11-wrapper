@@ -170,7 +170,7 @@ impl Screen {
 
         let created_colormap = CreatedColormap::create(self.display_handle.clone(), self, &visual)?;
 
-        let window_builder = WindowBuilder::new(self.display_handle.clone(), self.root_window_id().unwrap_or(0))?
+        let window_builder = WindowBuilder::new(self.display_handle.clone(), self.root_window_id().unwrap_or(0), true)?
             .set_colormap_and_visual(created_colormap, visual);
 
         Ok(window_builder)
