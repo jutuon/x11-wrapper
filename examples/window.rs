@@ -6,6 +6,7 @@ use std::time::Duration;
 use x11_wrapper::display::Display;
 use x11_wrapper::event::{ EventMask, SimpleEvent };
 use x11_wrapper::window::StackMode;
+use x11_wrapper::utils::Text;
 
 fn main() {
     println!("Hello world");
@@ -38,6 +39,10 @@ fn main() {
                     | EventMask::STRUCTURE_NOTIFY;
 
     window.select_input(event_mask);
+
+    let window_title = Text::new(&display, "Hello world".to_string()).unwrap();
+    window.set_window_name(window_title);
+
     window.map_window();
 
     display.flush_output_buffer();

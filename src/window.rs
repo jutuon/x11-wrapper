@@ -9,6 +9,7 @@ use color::{CreatedColormap, ColormapID};
 use visual::Visual;
 use event::EventMask;
 use screen::Screen;
+use utils::Text;
 
 const ERROR_TOP_LEVEL_WINDOW: &'static str = "window is not top level window";
 
@@ -303,6 +304,12 @@ impl InputOutputWindow {
             } else {
                 Ok(())
             }
+        }
+    }
+
+    pub fn set_window_name(&mut self, mut text: Text) {
+        unsafe {
+            xlib::XSetWMName(self.display_handle.raw_display(), self.window_id(), text.raw_text_property());
         }
     }
 }
