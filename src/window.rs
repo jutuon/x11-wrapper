@@ -1,5 +1,5 @@
 
-use std::os::raw::{c_int, c_ulong, c_uint, c_long, c_void};
+use std::os::raw::{c_int, c_ulong, c_uint, c_void};
 use std::sync::Arc;
 use std::marker::PhantomData;
 
@@ -11,7 +11,7 @@ use color::{CreatedColormap, ColormapID};
 use visual::Visual;
 use event::EventMask;
 use screen::Screen;
-use utils::Text;
+use utils::{Text, AtomList};
 
 const ERROR_TOP_LEVEL_WINDOW: &'static str = "window is not top level window";
 
@@ -338,6 +338,19 @@ impl InputOutputWindow {
     /// allocate `xlib::XSizeHints` structure.
     pub fn normal_hints_configurator(self) -> Result<NormalHintsConfigurator, Self> {
         NormalHintsConfigurator::new(self)
+    }
+
+    /// Set `WM_PROTOCOLS` property.
+    pub fn set_protocols(&mut self, mut atom_list: AtomList) -> Result<(), ()> {
+        let status = unsafe {
+            xlib::XSetWMProtocols(self.display_handle.raw_display(), self.window_id, atom_list.as_mut_ptr(), atom_list.len() as c_int)
+        };
+
+        if status == 0 {
+            Err(())
+        } else {
+            Ok(())
+        }
     }
 }
 

@@ -116,6 +116,7 @@ impl AtomName {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Atom {
     // Atom does not require display handle because atoms
     // exists in X server until there is no connections to X server.
@@ -123,10 +124,19 @@ pub struct Atom {
 }
 
 impl Atom {
-    /// Returns error if there was no matching atom.
-    pub fn get(display: &Display, mut atom_name: AtomName) -> Result<Atom, ()> {
+    /// Returns error if there was no matching atom when `only_if_exists` is `True`.
+    ///
+    /// If `only_if_exists` is `False`, new atom will be created if there isn't an
+    /// atom matching `atom_name`.
+    pub fn new(display: &Display, mut atom_name: AtomName, only_if_exists: bool) -> Result<Atom, ()> {
+        let only_if_exists = if only_if_exists {
+            xlib::True
+        } else {
+            xlib::False
+        };
+
         let atom_id = unsafe {
-            xlib::XInternAtom(display.raw_display(), atom_name.as_ptr(), xlib::True)
+            xlib::XInternAtom(display.raw_display(), atom_name.as_ptr(), only_if_exists)
         };
 
         if atom_id == 0 {
@@ -163,5 +173,31 @@ impl Atom {
 
     pub fn atom_id(&self) -> xlib::Atom {
         self.atom_id
+    }
+}
+
+/// Max list length is `std::i16::MAX`.
+pub struct AtomList(Vec<xlib::Atom>);
+
+impl AtomList {
+    pub fn new() -> Self {
+        AtomList(Vec::new())
+    }
+
+    /// Panics if list length is `std::i16::MAX`.
+    pub fn add(&mut self, atom: Atom) {
+        if self.len() == i16::max_value() {
+            panic!("Error: AtomList is full.");
+        }
+
+        self.0.push(atom.atom_id())
+    }
+
+    pub fn len(&self) -> i16 {
+        self.0.len() as i16
+    }
+
+    pub(crate) fn as_mut_ptr(&mut self) -> *mut xlib::Atom {
+        self.0.as_mut_slice().as_mut_ptr()
     }
 }
