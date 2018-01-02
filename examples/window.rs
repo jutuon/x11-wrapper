@@ -31,8 +31,10 @@ fn main() {
                     | EventMask::BUTTON_PRESS
                     | EventMask::BUTTON_RELEASE
                     | EventMask::POINTER_MOTION
-                    | EventMask::STRUCTURE_NOTIFY
-                    | EventMask::VISIBILITY_CHANGE;
+                    | EventMask::ENTER_WINDOW
+                    | EventMask::LEAVE_WINDOW
+                    | EventMask::FOCUS_CHANGE
+                    | EventMask::STRUCTURE_NOTIFY;
 
     window.select_input(event_mask);
     window.map_window();
@@ -42,6 +44,6 @@ fn main() {
     loop {
         let event = display.read_event_blocking();
 
-        println!("{:?}", event.event());
+        println!("{:?}", event.event().into_simple_event());
     }
 }

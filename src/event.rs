@@ -1,7 +1,7 @@
 
 
 use std::mem;
-use std::os::raw::{c_int, c_long};
+use std::os::raw::{c_int, c_long, c_uint};
 
 use x11::xlib;
 
@@ -143,6 +143,43 @@ pub enum Event<'a> {
     UnknownEvent(c_int),
 }
 
+impl <'a> Event<'a> {
+    pub fn into_simple_event(self) -> SimpleEvent<'a> {
+        match self {
+            Event::MotionNotify(e) => SimpleEvent::MotionNotify { x: e.x, y: e.y },
+            Event::ButtonPress(e) => SimpleEvent::ButtonPress { button: e.button },
+            Event::ButtonRelease(e) => SimpleEvent::ButtonRelease { button: e.button },
+            Event::KeyPress(e) => SimpleEvent::KeyPress { keycode: e.keycode },
+            Event::KeyRelease(e) => SimpleEvent::KeyRelease { keycode: e.keycode },
+            Event::EnterNotify(_) => SimpleEvent::EnterNotify,
+            Event::LeaveNotify(_) => SimpleEvent::LeaveNotify,
+            Event::FocusIn(_) => SimpleEvent::FocusIn,
+            Event::FocusOut(_) => SimpleEvent::FocusOut,
+            Event::MapNotify(_) => SimpleEvent::MapNotify,
+            Event::UnmapNotify(_) => SimpleEvent::UnmapNotify,
+            Event::ConfigureNotify(e) => SimpleEvent::ConfigureNotify { x: e.x, y: e.y, width: e.width, height: e.height },
+            e => SimpleEvent::UnknownEvent(e),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum SimpleEvent<'a> {
+    MotionNotify { x: c_int, y: c_int },
+    ButtonPress { button: c_uint },
+    ButtonRelease { button: c_uint },
+    KeyPress { keycode: c_uint },
+    KeyRelease { keycode: c_uint },
+    EnterNotify,
+    LeaveNotify,
+    FocusIn,
+    FocusOut,
+    DestroyNotify,
+    MapNotify,
+    UnmapNotify,
+    ConfigureNotify { x: c_int, y: c_int, width: c_int, height: c_int },
+    UnknownEvent(Event<'a>),
+}
 
 bitflags! {
     pub struct EventMask: c_long {
