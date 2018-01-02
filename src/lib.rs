@@ -15,3 +15,4 @@ pub mod error;
 pub mod visual;
 pub mod color;
 pub mod event;
+pub mod protocol;

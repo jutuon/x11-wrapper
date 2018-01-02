@@ -158,6 +158,7 @@ impl <'a> Event<'a> {
             Event::MapNotify(_) => SimpleEvent::MapNotify,
             Event::UnmapNotify(_) => SimpleEvent::UnmapNotify,
             Event::ConfigureNotify(e) => SimpleEvent::ConfigureNotify { x: e.x, y: e.y, width: e.width, height: e.height },
+            Event::ClientMessage(e) => SimpleEvent::ClientMessage(e),
             e => SimpleEvent::UnknownEvent(e),
         }
     }
@@ -178,6 +179,7 @@ pub enum SimpleEvent<'a> {
     MapNotify,
     UnmapNotify,
     ConfigureNotify { x: c_int, y: c_int, width: c_int, height: c_int },
+    ClientMessage(&'a xlib::XClientMessageEvent),
     UnknownEvent(Event<'a>),
 }
 

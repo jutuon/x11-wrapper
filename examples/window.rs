@@ -7,6 +7,7 @@ use x11_wrapper::display::Display;
 use x11_wrapper::event::{ EventMask, SimpleEvent };
 use x11_wrapper::window::StackMode;
 use x11_wrapper::utils::Text;
+use x11_wrapper::protocol::Protocols;
 
 fn main() {
     println!("Hello world");
@@ -51,6 +52,10 @@ fn main() {
         .set_min_window_size(640, 480)
         .end();
 
+    let mut protocols = Protocols::new();
+    let delete_window_handler = protocols.enable_delete_window(&display).unwrap();
+    window.set_protocols(protocols.protocol_atom_list()).unwrap();
+
     window.map_window();
 
     display.flush_output_buffer();
@@ -67,6 +72,11 @@ fn main() {
                 //window.lower();
                 window.iconify(&default_screen);
                 //window.set_stack_mode_top_level_window(&default_screen, StackMode::Below)
+            },
+            &SimpleEvent::ClientMessage(e) => {
+                if delete_window_handler.check_event(e) {
+                    break;
+                }
             }
             _ => (),
         }
