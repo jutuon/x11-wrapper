@@ -8,6 +8,7 @@ use x11_wrapper::event::{ EventMask, SimpleEvent };
 use x11_wrapper::window::StackMode;
 use x11_wrapper::utils::Text;
 use x11_wrapper::protocol::Protocols;
+use x11_wrapper::property::NetWmStateHandler;
 
 fn main() {
     println!("Hello world");
@@ -56,6 +57,8 @@ fn main() {
     let delete_window_handler = protocols.enable_delete_window(&display).unwrap();
     window.set_protocols(protocols.protocol_atom_list()).unwrap();
 
+    let mut net_wm_state_handler = NetWmStateHandler::new(&display).unwrap();
+
     window.map_window();
 
     display.flush_output_buffer();
@@ -66,6 +69,11 @@ fn main() {
         println!("{:?}", &event);
 
         match &event {
+            // Key W
+            &SimpleEvent::KeyRelease { keycode: 25 } => {
+                let event = net_wm_state_handler.toggle_fullscreen(&window);
+                default_screen.send_ewmh_client_message_event(event);
+            },
             // Key Q
             &SimpleEvent::KeyRelease { keycode: 24 } => {
                 //window.set_stack_mode(StackMode::Below);

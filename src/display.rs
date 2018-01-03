@@ -9,7 +9,7 @@ use x11::xlib;
 
 use screen::Screen;
 use visual::Visual;
-use event::EventBuffer;
+use event::{EventBuffer, EventCreator, EventMask, send_event};
 
 #[derive(Debug)]
 pub struct DisplayHandle {
@@ -209,6 +209,17 @@ impl Display {
         }
 
         &self.event_buffer
+    }
+
+    /// Sends new event.
+    ///
+    /// Returns error if event conversion to wire protocol format failed.
+    ///
+    /// X server changes event's send_event to true and serial number.
+    ///
+    /// This function sets event's display field.
+    pub fn send_event<T: EventCreator>(&self, window_id: xlib::Window, propagate: bool, event_mask: EventMask, event_creator: &mut T) -> Result<(), ()> {
+        send_event(self.raw_display(), window_id, propagate, event_mask, event_creator)
     }
 }
 

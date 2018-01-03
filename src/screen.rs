@@ -9,6 +9,7 @@ use display::DisplayHandle;
 use error::{ QueryResult, QueryError };
 use visual::Visual;
 use window::WindowBuilder;
+use event::{ ClientMessageEventCreator, send_event, EventMask };
 
 pub struct Screen {
     display_handle: Arc<DisplayHandle>,
@@ -174,6 +175,25 @@ impl Screen {
             .set_colormap_and_visual(created_colormap, visual);
 
         Ok(window_builder)
+    }
+
+    /// Send ClientMessage event to root window as
+    /// defined in Extended Window Manager Hints 1.3 specification.
+    ///
+    /// Returns error if root window id is not found or event conversion to wire
+    /// protocol fails.
+    ///
+    /// See also documentation for `Display::send_event`.
+    pub fn send_ewmh_client_message_event(&self, client_message_event: &mut ClientMessageEventCreator) -> Result<(), ()> {
+        let window_id = self.root_window_id().ok_or(())?;
+
+        send_event(
+            self.display_handle.raw_display(),
+            window_id,
+            false,
+            EventMask::SUBSTRUCTURE_NOTIFY | EventMask::SUBSTRUCTURE_REDIRECT,
+            client_message_event
+        )
     }
 }
 

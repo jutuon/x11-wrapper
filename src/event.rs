@@ -1,4 +1,5 @@
 
+//! Event handling.
 
 use std::mem;
 use std::os::raw::{c_int, c_long, c_uint};
@@ -210,5 +211,87 @@ bitflags! {
         const PROPERTY_CHANGE = xlib::PropertyChangeMask;
         const COLORMAP_CHANGE = xlib::ColormapChangeMask;
         const OWNER_GRAB_BUTTON = xlib::OwnerGrabButtonMask;
+    }
+}
+
+pub trait EventCreator {
+    fn raw_event_mut(&mut self) -> &mut xlib::XEvent;
+}
+
+
+/// Zeroed memory `xlib::XEvent`.
+pub struct AnyEventCreator {
+    raw_event: xlib::XEvent,
+}
+
+
+impl AnyEventCreator {
+    /// All fields of `xlib::XEvent` will be zero.
+    pub fn new() -> Self {
+        let raw_event = unsafe {
+            mem::zeroed()
+        };
+
+        Self {
+            raw_event
+        }
+    }
+}
+
+impl EventCreator for AnyEventCreator {
+    fn raw_event_mut(&mut self) -> &mut xlib::XEvent {
+        &mut self.raw_event
+    }
+}
+
+/// Zeroed memory XClientMessageEvent.
+pub struct ClientMessageEventCreator(AnyEventCreator);
+
+
+impl ClientMessageEventCreator {
+    /// Sets events type to `xlib::ClientMessage`.
+    pub fn new() -> Self {
+        let mut event = AnyEventCreator::new();
+
+        event.raw_event_mut().type_ = xlib::ClientMessage;
+
+        ClientMessageEventCreator(event)
+    }
+
+    pub fn client_message_mut(&mut self) -> &mut xlib::XClientMessageEvent {
+        unsafe {
+            &mut self.raw_event_mut().client_message
+        }
+    }
+}
+
+impl EventCreator for ClientMessageEventCreator {
+    fn raw_event_mut(&mut self) -> &mut xlib::XEvent {
+        self.0.raw_event_mut()
+    }
+}
+
+/// See documentation of `Display::send_event`.
+pub(crate) fn send_event<T: EventCreator>(raw_display: *mut xlib::Display, window_id: xlib::Window, propagate: bool, event_mask: EventMask, event_creator: &mut T) -> Result<(),()> {
+    let propagate = if propagate {
+        xlib::True
+    } else {
+        xlib::False
+    };
+
+    let event = event_creator.raw_event_mut();
+
+    unsafe {
+        event.any.display = raw_display;
+    }
+
+    let status = unsafe {
+        xlib::XSendEvent(raw_display, window_id, propagate, event_mask.bits(), event)
+    };
+
+    if status == 0 {
+        Err(())
+    } else {
+        Ok(())
     }
 }

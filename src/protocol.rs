@@ -8,6 +8,8 @@ use display::Display;
 
 use x11::xlib;
 
+/// Create handlers for protocols which will
+/// be enabled with window property `WM_PROTOCOLS`.
 pub struct Protocols {
     delete_window: Option<Atom>,
 }
@@ -31,6 +33,7 @@ impl Protocols {
         })
     }
 
+    /// Value for `WM_PROTOCOLS` property.
     pub fn protocol_atom_list(self) -> AtomList {
         let mut atom_list = AtomList::new();
 
