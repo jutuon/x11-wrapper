@@ -6,6 +6,8 @@ use x11::xlib;
 
 use super::display::Display;
 
+pub const XLIB_NONE: xlib::XID = 0;
+
 /// UTF-8 text
 #[derive(Debug)]
 pub struct Text {
