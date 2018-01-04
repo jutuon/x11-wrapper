@@ -7,9 +7,9 @@ use std::ffi::CStr;
 
 use x11::xlib;
 
-use screen::Screen;
-use visual::Visual;
-use event::{EventBuffer, EventCreator, EventMask, send_event};
+use super::screen::Screen;
+use super::visual::Visual;
+use super::event::{EventBuffer, EventCreator, EventMask, send_event};
 
 #[derive(Debug)]
 pub struct DisplayHandle {

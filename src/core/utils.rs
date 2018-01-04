@@ -4,7 +4,7 @@ use std::mem;
 
 use x11::xlib;
 
-use display::Display;
+use super::display::Display;
 
 /// UTF-8 text
 #[derive(Debug)]

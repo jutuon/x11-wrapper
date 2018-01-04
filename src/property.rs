@@ -3,10 +3,10 @@
 
 use std::os::raw::c_long;
 
-use utils::{Atom, AtomName};
-use event::ClientMessageEventCreator;
-use display::Display;
-use window::{InputOutputWindow, WindowID};
+use core::utils::{Atom, AtomName};
+use core::event::ClientMessageEventCreator;
+use core::display::Display;
+use core::window::input_output::{InputOutputWindow, WindowID};
 
 /// Handler for `_NET_WM_STATE`.
 pub struct NetWmStateHandler {

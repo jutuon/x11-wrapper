@@ -1,4 +1,8 @@
 
+//! InputOutput windows.
+
+
+
 use std::os::raw::{c_int, c_ulong, c_uint, c_void};
 use std::sync::Arc;
 use std::marker::PhantomData;
@@ -6,12 +10,12 @@ use std::marker::PhantomData;
 
 use x11::xlib;
 
-use display::DisplayHandle;
-use color::{CreatedColormap, ColormapID};
-use visual::Visual;
-use event::EventMask;
-use screen::Screen;
-use utils::{Text, AtomList};
+use core::display::DisplayHandle;
+use core::color::{CreatedColormap, ColormapID};
+use core::visual::Visual;
+use core::event::EventMask;
+use core::screen::Screen;
+use core::utils::{Text, AtomList};
 
 const ERROR_TOP_LEVEL_WINDOW: &'static str = "window is not top level window";
 

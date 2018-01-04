@@ -5,7 +5,7 @@ use std::mem;
 
 use x11::xlib;
 
-use display::DisplayHandle;
+use super::display::DisplayHandle;
 
 pub struct Visual {
     display_handle: Arc<DisplayHandle>,

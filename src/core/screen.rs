@@ -4,12 +4,12 @@ use std::sync::Arc;
 
 use x11::xlib;
 
-use color::{ DefaultColormap, CreatedColormap };
-use display::DisplayHandle;
-use error::{ QueryResult, QueryError };
-use visual::Visual;
-use window::WindowBuilder;
-use event::{ ClientMessageEventCreator, send_event, EventMask };
+use super::color::{ DefaultColormap, CreatedColormap };
+use super::display::DisplayHandle;
+use super::error::{ QueryResult, QueryError };
+use super::visual::Visual;
+use super::window::input_output::WindowBuilder;
+use super::event::{ ClientMessageEventCreator, send_event, EventMask };
 
 pub struct Screen {
     display_handle: Arc<DisplayHandle>,

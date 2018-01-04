@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use x11::xlib;
 
-use screen::Screen;
-use display::DisplayHandle;
-use visual::Visual;
+use super::screen::Screen;
+use super::display::DisplayHandle;
+use super::visual::Visual;
 
 pub struct DefaultColormap(xlib::XID);
 

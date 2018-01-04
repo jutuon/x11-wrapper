@@ -3,8 +3,8 @@
 
 use std::os::raw::c_long;
 
-use utils::{AtomList, Atom, AtomName};
-use display::Display;
+use core::utils::{AtomList, Atom, AtomName};
+use core::display::Display;
 
 use x11::xlib;
 

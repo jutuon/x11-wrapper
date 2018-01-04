@@ -3,10 +3,10 @@ extern crate x11_wrapper;
 use std::thread;
 use std::time::Duration;
 
-use x11_wrapper::display::Display;
-use x11_wrapper::event::{ EventMask, SimpleEvent };
-use x11_wrapper::window::StackMode;
-use x11_wrapper::utils::Text;
+use x11_wrapper::core::display::Display;
+use x11_wrapper::core::event::{ EventMask, SimpleEvent };
+use x11_wrapper::core::window::input_output::StackMode;
+use x11_wrapper::core::utils::Text;
 use x11_wrapper::protocol::Protocols;
 use x11_wrapper::property::NetWmStateHandler;
 
