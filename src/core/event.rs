@@ -1,4 +1,3 @@
-
 //! Event handling.
 
 use std::mem;
@@ -13,9 +12,7 @@ pub struct EventBuffer {
 impl EventBuffer {
     pub(crate) fn zeroed() -> Self {
         Self {
-            event: unsafe {
-                mem::zeroed()
-            }
+            event: unsafe { mem::zeroed() },
         }
     }
 
@@ -68,7 +65,6 @@ impl EventBuffer {
                 // MapNotify
                 // ReparentNotify
                 // UnmapNotify
-
                 xlib::CirculateRequest => Event::CirculateRequest(&self.event.circulate_request),
                 xlib::ConfigureRequest => Event::ConfigureRequest(&self.event.configure_request),
                 xlib::MapRequest => Event::MapRequest(&self.event.map_request),
@@ -84,9 +80,7 @@ impl EventBuffer {
             }
         }
     }
-
 }
-
 
 /// Events like in Xlib manual section "Event Processing Overview".
 #[derive(Debug)]
@@ -129,7 +123,6 @@ pub enum Event<'a> {
     // MapNotify(&'a xlib::XMapEvent),
     // ReparentNotify(&'a xlib::XReparentEvent),
     // UnmapNotify(&'a xlib::XUnmapEvent),
-
     CirculateRequest(&'a xlib::XCirculateRequestEvent),
     ConfigureRequest(&'a xlib::XConfigureRequestEvent),
     MapRequest(&'a xlib::XMapRequestEvent),
@@ -144,7 +137,7 @@ pub enum Event<'a> {
     UnknownEvent(c_int),
 }
 
-impl <'a> Event<'a> {
+impl<'a> Event<'a> {
     pub fn into_simple_event(self) -> SimpleEvent<'a> {
         match self {
             Event::MotionNotify(e) => SimpleEvent::MotionNotify { x: e.x, y: e.y },
@@ -158,7 +151,12 @@ impl <'a> Event<'a> {
             Event::FocusOut(_) => SimpleEvent::FocusOut,
             Event::MapNotify(_) => SimpleEvent::MapNotify,
             Event::UnmapNotify(_) => SimpleEvent::UnmapNotify,
-            Event::ConfigureNotify(e) => SimpleEvent::ConfigureNotify { x: e.x, y: e.y, width: e.width, height: e.height },
+            Event::ConfigureNotify(e) => SimpleEvent::ConfigureNotify {
+                x: e.x,
+                y: e.y,
+                width: e.width,
+                height: e.height,
+            },
             Event::ClientMessage(e) => SimpleEvent::ClientMessage(e),
             e => SimpleEvent::UnknownEvent(e),
         }
@@ -167,11 +165,22 @@ impl <'a> Event<'a> {
 
 #[derive(Debug)]
 pub enum SimpleEvent<'a> {
-    MotionNotify { x: c_int, y: c_int },
-    ButtonPress { button: c_uint },
-    ButtonRelease { button: c_uint },
-    KeyPress { keycode: c_uint },
-    KeyRelease { keycode: c_uint },
+    MotionNotify {
+        x: c_int,
+        y: c_int,
+    },
+    ButtonPress {
+        button: c_uint,
+    },
+    ButtonRelease {
+        button: c_uint,
+    },
+    KeyPress {
+        keycode: c_uint,
+    },
+    KeyRelease {
+        keycode: c_uint,
+    },
     EnterNotify,
     LeaveNotify,
     FocusIn,
@@ -179,7 +188,12 @@ pub enum SimpleEvent<'a> {
     DestroyNotify,
     MapNotify,
     UnmapNotify,
-    ConfigureNotify { x: c_int, y: c_int, width: c_int, height: c_int },
+    ConfigureNotify {
+        x: c_int,
+        y: c_int,
+        width: c_int,
+        height: c_int,
+    },
     ClientMessage(&'a xlib::XClientMessageEvent),
     UnknownEvent(Event<'a>),
 }
@@ -218,23 +232,17 @@ pub trait EventCreator {
     fn raw_event_mut(&mut self) -> &mut xlib::XEvent;
 }
 
-
 /// Zeroed memory `xlib::XEvent`.
 pub struct AnyEventCreator {
     raw_event: xlib::XEvent,
 }
 
-
 impl AnyEventCreator {
     /// All fields of `xlib::XEvent` will be zero.
     pub fn new() -> Self {
-        let raw_event = unsafe {
-            mem::zeroed()
-        };
+        let raw_event = unsafe { mem::zeroed() };
 
-        Self {
-            raw_event
-        }
+        Self { raw_event }
     }
 }
 
@@ -247,7 +255,6 @@ impl EventCreator for AnyEventCreator {
 /// Zeroed memory XClientMessageEvent.
 pub struct ClientMessageEventCreator(AnyEventCreator);
 
-
 impl ClientMessageEventCreator {
     /// Sets events type to `xlib::ClientMessage`.
     pub fn new() -> Self {
@@ -259,9 +266,7 @@ impl ClientMessageEventCreator {
     }
 
     pub fn client_message_mut(&mut self) -> &mut xlib::XClientMessageEvent {
-        unsafe {
-            &mut self.raw_event_mut().client_message
-        }
+        unsafe { &mut self.raw_event_mut().client_message }
     }
 }
 
@@ -272,12 +277,14 @@ impl EventCreator for ClientMessageEventCreator {
 }
 
 /// See documentation of `Display::send_event`.
-pub(crate) fn send_event<T: EventCreator>(raw_display: *mut xlib::Display, window_id: xlib::Window, propagate: bool, event_mask: EventMask, event_creator: &mut T) -> Result<(),()> {
-    let propagate = if propagate {
-        xlib::True
-    } else {
-        xlib::False
-    };
+pub(crate) fn send_event<T: EventCreator>(
+    raw_display: *mut xlib::Display,
+    window_id: xlib::Window,
+    propagate: bool,
+    event_mask: EventMask,
+    event_creator: &mut T,
+) -> Result<(), ()> {
+    let propagate = if propagate { xlib::True } else { xlib::False };
 
     let event = event_creator.raw_event_mut();
 

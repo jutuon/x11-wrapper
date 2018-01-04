@@ -1,7 +1,4 @@
-
 //! Core Xlib functionality
-
-
 
 pub mod window;
 pub mod color;

@@ -1,4 +1,3 @@
-
 pub extern crate x11;
 
 #[macro_use]

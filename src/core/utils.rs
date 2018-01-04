@@ -1,5 +1,5 @@
-use std::ffi::{ CString, CStr };
-use std::os::raw::{ c_char, c_void, c_int };
+use std::ffi::{CStr, CString};
+use std::os::raw::{c_char, c_int, c_void};
 use std::mem;
 
 use x11::xlib;
@@ -30,9 +30,7 @@ impl Text {
 
         let mut one_text = c_string.as_ptr() as *mut c_char;
 
-        let mut text_property: xlib::XTextProperty = unsafe {
-            mem::zeroed()
-        };
+        let mut text_property: xlib::XTextProperty = unsafe { mem::zeroed() };
 
         let status = unsafe {
             xlib::Xutf8TextListToTextProperty(
@@ -45,25 +43,21 @@ impl Text {
         };
 
         match status {
-            0 => {
-                Ok(Self {
-                    text_property
-                })
-            },
-            -1 => { // XNoMemory
+            0 => Ok(Self { text_property }),
+            -1 => {
+                // XNoMemory
                 Err(TextError::NoMemory)
-            },
-            -2 => { // XLocaleNotSupported
+            }
+            -2 => {
+                // XLocaleNotSupported
                 Err(TextError::LocaleNotSupported)
-            },
+            }
             value if value < -2 => {
                 // TODO: This may make a memory leak.
                 Err(TextError::UnknownError)
-            },
+            }
             value => {
-                let text = Self {
-                    text_property
-                };
+                let text = Self { text_property };
                 Err(TextError::UnconvertedCharacters(value, text))
             }
         }
@@ -97,10 +91,9 @@ pub struct AtomName(CString);
 impl AtomName {
     /// Returns error if there were unexpected characters in the string.
     pub fn new(string: String) -> Result<Self, AtomNameError> {
-
         for c in string.chars() {
-             match c {
-                'a'...'z' | 'A'...'Z' | '0'...'9'| '_' => (),
+            match c {
+                'a'...'z' | 'A'...'Z' | '0'...'9' | '_' => (),
                 _ => return Err(AtomNameError::UnknownCharacter),
             }
         }
@@ -128,7 +121,11 @@ impl Atom {
     ///
     /// If `only_if_exists` is `False`, new atom will be created if there isn't an
     /// atom matching `atom_name`.
-    pub fn new(display: &Display, mut atom_name: AtomName, only_if_exists: bool) -> Result<Atom, ()> {
+    pub fn new(
+        display: &Display,
+        mut atom_name: AtomName,
+        only_if_exists: bool,
+    ) -> Result<Atom, ()> {
         let only_if_exists = if only_if_exists {
             xlib::True
         } else {
@@ -142,24 +139,18 @@ impl Atom {
         if atom_id == 0 {
             Err(())
         } else {
-            Ok(Atom {
-                atom_id
-            })
+            Ok(Atom { atom_id })
         }
     }
 
     pub fn get_name(&self, display: &Display) -> Result<String, ()> {
-        let text_ptr = unsafe {
-            xlib::XGetAtomName(display.raw_display(), self.atom_id())
-        };
+        let text_ptr = unsafe { xlib::XGetAtomName(display.raw_display(), self.atom_id()) };
 
         if text_ptr.is_null() {
             Err(())
         } else {
             let name = {
-                let c_str = unsafe {
-                    CStr::from_ptr(text_ptr)
-                };
+                let c_str = unsafe { CStr::from_ptr(text_ptr) };
                 c_str.to_string_lossy().to_string()
             };
 

@@ -1,4 +1,3 @@
-
 //! Set window properties.
 
 use std::os::raw::c_long;
@@ -18,10 +17,14 @@ pub struct NetWmStateHandler {
 impl NetWmStateHandler {
     /// Returns error if querying atom_name fails.
     pub fn new(display: &Display) -> Result<Self, ()> {
-        let fullscreen_name = AtomName::new("_NET_WM_STATE_FULLSCREEN".to_string()).map_err(|_| ()).unwrap();
+        let fullscreen_name = AtomName::new("_NET_WM_STATE_FULLSCREEN".to_string())
+            .map_err(|_| ())
+            .unwrap();
         let fullscreen = Atom::new(display, fullscreen_name, false)?;
 
-        let net_wm_state_name = AtomName::new("_NET_WM_STATE".to_string()).map_err(|_| ()).unwrap();
+        let net_wm_state_name = AtomName::new("_NET_WM_STATE".to_string())
+            .map_err(|_| ())
+            .unwrap();
         let net_wm_state = Atom::new(display, net_wm_state_name, false)?;
 
         Ok(Self {
@@ -38,7 +41,10 @@ impl NetWmStateHandler {
 
     /// Prepare client message for toggling fullscreen property
     /// of `window`.
-    pub fn toggle_fullscreen(&mut self, window: &InputOutputWindow) -> &mut ClientMessageEventCreator {
+    pub fn toggle_fullscreen(
+        &mut self,
+        window: &InputOutputWindow,
+    ) -> &mut ClientMessageEventCreator {
         let fullscreen_atom = self.fullscreen_atom().atom_id() as c_long;
 
         {
@@ -57,5 +63,4 @@ impl NetWmStateHandler {
 
         &mut self.event
     }
-
 }

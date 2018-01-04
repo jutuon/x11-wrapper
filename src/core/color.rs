@@ -1,4 +1,3 @@
-
 use std::sync::Arc;
 
 use x11::xlib;
@@ -17,8 +16,6 @@ impl DefaultColormap {
             Some(DefaultColormap(id))
         }
     }
-
-
 }
 
 pub trait ColormapID {
@@ -31,7 +28,6 @@ impl ColormapID for DefaultColormap {
     }
 }
 
-
 #[derive(Debug)]
 pub struct CreatedColormap {
     display_handle: Arc<DisplayHandle>,
@@ -39,14 +35,23 @@ pub struct CreatedColormap {
 }
 
 impl CreatedColormap {
-    pub(crate) fn create(display_handle: Arc<DisplayHandle>, screen: &Screen, visual: &Visual) -> Result<CreatedColormap, ()> {
+    pub(crate) fn create(
+        display_handle: Arc<DisplayHandle>,
+        screen: &Screen,
+        visual: &Visual,
+    ) -> Result<CreatedColormap, ()> {
         let root_window_id = match screen.root_window_id() {
             Some(id) => id,
             None => return Err(()),
         };
 
         let colormap = unsafe {
-            xlib::XCreateColormap(display_handle.raw_display(), root_window_id, visual.raw_visual(), xlib::AllocNone)
+            xlib::XCreateColormap(
+                display_handle.raw_display(),
+                root_window_id,
+                visual.raw_visual(),
+                xlib::AllocNone,
+            )
         };
 
         if colormap == 0 {

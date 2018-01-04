@@ -1,4 +1,3 @@
-
 use std::os::raw::{c_int, c_void};
 use std::sync::Arc;
 use std::mem;
@@ -13,24 +12,29 @@ pub struct Visual {
 }
 
 impl Visual {
-    pub(crate) fn new(display_handle: Arc<DisplayHandle>, visual_id: xlib::VisualID) -> Option<Self> {
-
-        let mut template: xlib::XVisualInfo = unsafe {
-            mem::zeroed()
-        };
+    pub(crate) fn new(
+        display_handle: Arc<DisplayHandle>,
+        visual_id: xlib::VisualID,
+    ) -> Option<Self> {
+        let mut template: xlib::XVisualInfo = unsafe { mem::zeroed() };
 
         template.visualid = visual_id;
         let mut count = 0;
 
         let visual_info_list = unsafe {
-            xlib::XGetVisualInfo(display_handle.raw_display(), xlib::VisualIDMask, &mut template, &mut count)
+            xlib::XGetVisualInfo(
+                display_handle.raw_display(),
+                xlib::VisualIDMask,
+                &mut template,
+                &mut count,
+            )
         };
 
         if visual_info_list.is_null() {
             return None;
         } else {
             let visual_info = xlib::XVisualInfo {
-                .. unsafe { *visual_info_list }
+                ..unsafe { *visual_info_list }
             };
 
             unsafe {

@@ -1,21 +1,17 @@
-
 //! InputOutput windows.
 
-
-
-use std::os::raw::{c_int, c_ulong, c_uint, c_void};
+use std::os::raw::{c_int, c_uint, c_ulong, c_void};
 use std::sync::Arc;
 use std::marker::PhantomData;
-
 
 use x11::xlib;
 
 use core::display::DisplayHandle;
-use core::color::{CreatedColormap, ColormapID};
+use core::color::{ColormapID, CreatedColormap};
 use core::visual::Visual;
 use core::event::EventMask;
 use core::screen::Screen;
-use core::utils::{Text, AtomList};
+use core::utils::{AtomList, Text};
 
 const ERROR_TOP_LEVEL_WINDOW: &'static str = "window is not top level window";
 
@@ -33,8 +29,11 @@ pub struct WindowBuilder {
 
 impl WindowBuilder {
     /// Returns error if parent window id is zero.
-    pub(crate) fn new(display_handle: Arc<DisplayHandle>, parent_window_id: xlib::Window, top_level_window: bool) -> Result<Self, ()> {
-
+    pub(crate) fn new(
+        display_handle: Arc<DisplayHandle>,
+        parent_window_id: xlib::Window,
+        top_level_window: bool,
+    ) -> Result<Self, ()> {
         if parent_window_id == 0 {
             return Err(());
         }
@@ -71,7 +70,11 @@ impl WindowBuilder {
         })
     }
 
-    pub(crate) fn set_colormap_and_visual(mut self, colormap: CreatedColormap, visual: Visual) -> Self {
+    pub(crate) fn set_colormap_and_visual(
+        mut self,
+        colormap: CreatedColormap,
+        visual: Visual,
+    ) -> Self {
         self.attributes.colormap = colormap.id();
         self.colormap_and_visual = Some((colormap, visual));
         self
@@ -103,13 +106,23 @@ impl WindowBuilder {
         self
     }
 
-
     pub fn build_input_output_window(mut self) -> Result<InputOutputWindow, ()> {
-        let (valuemask, visual, depth, colormap) = if let Some((colormap, visual)) = self.colormap_and_visual {
-            (xlib::CWColormap, visual.raw_visual(), visual.depth(), Some(colormap))
-        } else {
-            (0, xlib::CopyFromParent as *mut xlib::Visual, xlib::CopyFromParent, None)
-        };
+        let (valuemask, visual, depth, colormap) =
+            if let Some((colormap, visual)) = self.colormap_and_visual {
+                (
+                    xlib::CWColormap,
+                    visual.raw_visual(),
+                    visual.depth(),
+                    Some(colormap),
+                )
+            } else {
+                (
+                    0,
+                    xlib::CopyFromParent as *mut xlib::Visual,
+                    xlib::CopyFromParent,
+                    None,
+                )
+            };
 
         let window_id = unsafe {
             xlib::XCreateWindow(
@@ -162,7 +175,11 @@ impl InputOutputWindow {
         // TODO: check errors
 
         unsafe {
-            xlib::XSelectInput(self.display_handle.raw_display(), self.window_id, event_mask.bits());
+            xlib::XSelectInput(
+                self.display_handle.raw_display(),
+                self.window_id,
+                event_mask.bits(),
+            );
         }
     }
 
@@ -180,7 +197,11 @@ impl InputOutputWindow {
     /// If sibling is `None`, sibling configuration option is not set.
     /// If sibling is `Some(sibling)`, the window in sibling argument must
     /// really be a sibling window or BadMatch error is generated.
-    pub fn set_sibling_and_stack_mode<W: WindowID>(&mut self, sibling: Option<&W>, stack_mode: StackMode) {
+    pub fn set_sibling_and_stack_mode<W: WindowID>(
+        &mut self,
+        sibling: Option<&W>,
+        stack_mode: StackMode,
+    ) {
         let (sibling, configure_mask) = if let Some(w) = sibling {
             (w.window_id(), xlib::CWSibling | xlib::CWStackMode)
         } else {
@@ -202,11 +223,10 @@ impl InputOutputWindow {
                 self.display_handle.raw_display(),
                 self.window_id(),
                 configure_mask as c_uint,
-                &mut changes
+                &mut changes,
             );
         }
     }
-
 
     pub fn lower(&mut self) {
         unsafe {
@@ -236,7 +256,11 @@ impl InputOutputWindow {
     pub fn iconify(&mut self, screen: &Screen) -> Result<(), ()> {
         if self.top_level_window {
             unsafe {
-                let status = xlib::XIconifyWindow(self.display_handle.raw_display(), self.window_id, screen.screen_number());
+                let status = xlib::XIconifyWindow(
+                    self.display_handle.raw_display(),
+                    self.window_id,
+                    screen.screen_number(),
+                );
 
                 if status == 0 {
                     Err(())
@@ -253,7 +277,11 @@ impl InputOutputWindow {
     pub fn withdraw(&mut self, screen: &Screen) -> Result<(), ()> {
         if self.top_level_window {
             unsafe {
-                let status = xlib::XWithdrawWindow(self.display_handle.raw_display(), self.window_id, screen.screen_number());
+                let status = xlib::XWithdrawWindow(
+                    self.display_handle.raw_display(),
+                    self.window_id,
+                    screen.screen_number(),
+                );
 
                 if status == 0 {
                     Err(())
@@ -267,8 +295,16 @@ impl InputOutputWindow {
     }
 
     /// Panics if window is not top level window.
-    pub fn set_stack_mode_top_level_window(&mut self, screen: &Screen, stack_mode: StackMode) -> Result<(), ()> {
-        self.set_sibling_and_stack_mode_top_level_window::<InputOutputWindow>(screen, None, stack_mode)
+    pub fn set_stack_mode_top_level_window(
+        &mut self,
+        screen: &Screen,
+        stack_mode: StackMode,
+    ) -> Result<(), ()> {
+        self.set_sibling_and_stack_mode_top_level_window::<InputOutputWindow>(
+            screen,
+            None,
+            stack_mode,
+        )
     }
 
     /// Panics if window is not top level window.
@@ -276,7 +312,12 @@ impl InputOutputWindow {
     /// If sibling is `None`, sibling configuration option is not set.
     /// If sibling is `Some(sibling)`, the window in sibling argument must
     /// really be a sibling window or BadMatch error is generated.
-    pub fn set_sibling_and_stack_mode_top_level_window<W: WindowID>(&mut self, screen: &Screen, sibling: Option<&W>, stack_mode: StackMode) -> Result<(), ()>{
+    pub fn set_sibling_and_stack_mode_top_level_window<W: WindowID>(
+        &mut self,
+        screen: &Screen,
+        sibling: Option<&W>,
+        stack_mode: StackMode,
+    ) -> Result<(), ()> {
         if !self.top_level_window {
             panic!(ERROR_TOP_LEVEL_WINDOW)
         }
@@ -303,7 +344,7 @@ impl InputOutputWindow {
                 self.window_id(),
                 screen.screen_number(),
                 configure_mask as c_uint,
-                &mut changes
+                &mut changes,
             );
 
             if status == 0 {
@@ -317,14 +358,22 @@ impl InputOutputWindow {
     /// Set `WM_NAME` property.
     pub fn set_window_name(&mut self, mut text: Text) {
         unsafe {
-            xlib::XSetWMName(self.display_handle.raw_display(), self.window_id(), text.raw_text_property());
+            xlib::XSetWMName(
+                self.display_handle.raw_display(),
+                self.window_id(),
+                text.raw_text_property(),
+            );
         }
     }
 
     /// Set `WM_ICON_NAME` property.
     pub fn set_window_icon_name(&mut self, mut text: Text) {
         unsafe {
-            xlib::XSetWMIconName(self.display_handle.raw_display(), self.window_id(), text.raw_text_property());
+            xlib::XSetWMIconName(
+                self.display_handle.raw_display(),
+                self.window_id(),
+                text.raw_text_property(),
+            );
         }
     }
 
@@ -347,7 +396,12 @@ impl InputOutputWindow {
     /// Set `WM_PROTOCOLS` property.
     pub fn set_protocols(&mut self, mut atom_list: AtomList) -> Result<(), ()> {
         let status = unsafe {
-            xlib::XSetWMProtocols(self.display_handle.raw_display(), self.window_id, atom_list.as_mut_ptr(), atom_list.len() as c_int)
+            xlib::XSetWMProtocols(
+                self.display_handle.raw_display(),
+                self.window_id,
+                atom_list.as_mut_ptr(),
+                atom_list.len() as c_int,
+            )
         };
 
         if status == 0 {
@@ -396,9 +450,7 @@ impl Hints {
     /// Returns error if there is no enough memory to
     /// allocate `xlib::XWMHints` structure.
     fn new() -> Result<Self, ()> {
-        let wm_hints_ptr = unsafe {
-            xlib::XAllocWMHints()
-        };
+        let wm_hints_ptr = unsafe { xlib::XAllocWMHints() };
 
         if wm_hints_ptr.is_null() {
             Err(())
@@ -438,22 +490,21 @@ impl HintsConfigurator {
             Err(()) => return Err(window),
         };
 
-
-        Ok(Self {
-            window,
-            hints,
-        })
+        Ok(Self { window, hints })
     }
 
     pub fn end(mut self) -> InputOutputWindow {
         unsafe {
-            xlib::XSetWMHints(self.window.display_handle.raw_display(), self.window.window_id(), self.hints.as_mut_ptr());
+            xlib::XSetWMHints(
+                self.window.display_handle.raw_display(),
+                self.window.window_id(),
+                self.hints.as_mut_ptr(),
+            );
         }
 
         self.window
     }
 }
-
 
 /// Allocated `xlib::XSizeHints` structure.
 struct SizeHints {
@@ -465,9 +516,7 @@ impl SizeHints {
     /// Returns error if there is no enough memory to
     /// allocate `xlib::XSizeHints` structure.
     fn new() -> Result<Self, ()> {
-        let size_hints_ptr = unsafe {
-            xlib::XAllocSizeHints()
-        };
+        let size_hints_ptr = unsafe { xlib::XAllocSizeHints() };
 
         if size_hints_ptr.is_null() {
             Err(())
@@ -507,12 +556,8 @@ impl NormalHintsConfigurator {
             Err(()) => return Err(window),
         };
 
-        Ok(Self {
-            window,
-            size_hints,
-        })
+        Ok(Self { window, size_hints })
     }
-
 
     pub fn set_max_window_size(mut self, width: c_int, height: c_int) -> Self {
         unsafe {
@@ -536,7 +581,11 @@ impl NormalHintsConfigurator {
 
     pub fn end(mut self) -> InputOutputWindow {
         unsafe {
-            xlib::XSetWMNormalHints(self.window.display_handle.raw_display(), self.window.window_id(), self.size_hints.as_mut_ptr());
+            xlib::XSetWMNormalHints(
+                self.window.display_handle.raw_display(),
+                self.window.window_id(),
+                self.size_hints.as_mut_ptr(),
+            );
         }
 
         self.window

@@ -1,9 +1,8 @@
-
 //! Handle optional protocols.
 
 use std::os::raw::c_long;
 
-use core::utils::{AtomList, Atom, AtomName};
+use core::utils::{Atom, AtomList, AtomName};
 use core::display::Display;
 
 use x11::xlib;
@@ -22,7 +21,10 @@ impl Protocols {
     }
 
     /// Returns error if `Atom` creation failed.
-    pub fn enable_delete_window(&mut self, display: &Display) -> Result<ProtocolHandlerDeleteWindow, ()> {
+    pub fn enable_delete_window(
+        &mut self,
+        display: &Display,
+    ) -> Result<ProtocolHandlerDeleteWindow, ()> {
         let name = AtomName::new("WM_DELETE_WINDOW".to_string()).map_err(|_| ())?;
         let atom = Atom::new(display, name, false)?;
 
@@ -50,11 +52,9 @@ pub struct ProtocolHandlerDeleteWindow {
     protocol_name: Atom,
 }
 
-
 impl ProtocolHandlerDeleteWindow {
     /// Return true if event matches the protocol.
     pub fn check_event(&self, event: &xlib::XClientMessageEvent) -> bool {
-        event.format == 32 &&
-        event.data.as_longs()[0] == self.protocol_name.atom_id() as c_long
+        event.format == 32 && event.data.as_longs()[0] == self.protocol_name.atom_id() as c_long
     }
 }

@@ -1,15 +1,14 @@
-
 use std::os::raw::{c_int, c_ulong};
 use std::sync::Arc;
 
 use x11::xlib;
 
-use super::color::{ DefaultColormap, CreatedColormap };
+use super::color::{CreatedColormap, DefaultColormap};
 use super::display::DisplayHandle;
-use super::error::{ QueryResult, QueryError };
+use super::error::{QueryError, QueryResult};
 use super::visual::Visual;
 use super::window::input_output::WindowBuilder;
-use super::event::{ ClientMessageEventCreator, send_event, EventMask };
+use super::event::{send_event, ClientMessageEventCreator, EventMask};
 
 pub struct Screen {
     display_handle: Arc<DisplayHandle>,
@@ -29,33 +28,23 @@ impl Screen {
     }
 
     pub fn black_pixel(&self) -> c_ulong {
-        unsafe {
-            xlib::XBlackPixelOfScreen(self.raw_screen)
-        }
+        unsafe { xlib::XBlackPixelOfScreen(self.raw_screen) }
     }
 
     pub fn white_pixel(&self) -> c_ulong {
-        unsafe {
-            xlib::XWhitePixelOfScreen(self.raw_screen)
-        }
+        unsafe { xlib::XWhitePixelOfScreen(self.raw_screen) }
     }
 
     pub fn colormap_cells(&self) -> c_int {
-        unsafe {
-            xlib::XCellsOfScreen(self.raw_screen)
-        }
+        unsafe { xlib::XCellsOfScreen(self.raw_screen) }
     }
 
     pub fn default_colormap(&self) -> Option<DefaultColormap> {
-        DefaultColormap::new(unsafe {
-            xlib::XDefaultColormapOfScreen(self.raw_screen)
-        })
+        DefaultColormap::new(unsafe { xlib::XDefaultColormapOfScreen(self.raw_screen) })
     }
 
     pub fn default_depth(&self) -> c_int {
-        unsafe {
-            xlib::XDefaultDepthOfScreen(self.raw_screen)
-        }
+        unsafe { xlib::XDefaultDepthOfScreen(self.raw_screen) }
     }
 
     pub fn default_visual(&self) -> Option<Visual> {
@@ -77,10 +66,7 @@ impl Screen {
     }
 
     pub fn does_backing_store(&self) -> QueryResult<BackingStore> {
-        let result = unsafe {
-            xlib::XDoesBackingStore(self.raw_screen)
-        };
-
+        let result = unsafe { xlib::XDoesBackingStore(self.raw_screen) };
 
         let result = match result {
             xlib::WhenMapped => BackingStore::WhenMapped,
@@ -93,9 +79,7 @@ impl Screen {
     }
 
     pub fn does_save_unders(&self) -> bool {
-        let result = unsafe {
-            xlib::XDoesSaveUnders(self.raw_screen)
-        };
+        let result = unsafe { xlib::XDoesSaveUnders(self.raw_screen) };
 
         result == xlib::True
     }
@@ -105,57 +89,39 @@ impl Screen {
     }
 
     pub fn screen_number(&self) -> c_int {
-        unsafe {
-            xlib::XScreenNumberOfScreen(self.raw_screen)
-        }
+        unsafe { xlib::XScreenNumberOfScreen(self.raw_screen) }
     }
 
     pub fn width_in_pixels(&self) -> c_int {
-        unsafe {
-            xlib::XWidthOfScreen(self.raw_screen)
-        }
+        unsafe { xlib::XWidthOfScreen(self.raw_screen) }
     }
 
     pub fn height_in_pixels(&self) -> c_int {
-        unsafe {
-            xlib::XHeightOfScreen(self.raw_screen)
-        }
+        unsafe { xlib::XHeightOfScreen(self.raw_screen) }
     }
 
     pub fn width_in_millimeters(&self) -> c_int {
-        unsafe {
-            xlib::XWidthMMOfScreen(self.raw_screen)
-        }
+        unsafe { xlib::XWidthMMOfScreen(self.raw_screen) }
     }
 
     pub fn height_in_millimeters(&self) -> c_int {
-        unsafe {
-            xlib::XHeightMMOfScreen(self.raw_screen)
-        }
+        unsafe { xlib::XHeightMMOfScreen(self.raw_screen) }
     }
 
     pub fn max_colormap_count(&self) -> c_int {
-        unsafe {
-            xlib::XMaxCmapsOfScreen(self.raw_screen)
-        }
+        unsafe { xlib::XMaxCmapsOfScreen(self.raw_screen) }
     }
 
     pub fn min_colormap_count(&self) -> c_int {
-        unsafe {
-            xlib::XMinCmapsOfScreen(self.raw_screen)
-        }
+        unsafe { xlib::XMinCmapsOfScreen(self.raw_screen) }
     }
 
     pub fn planes(&self) -> c_int {
-        unsafe {
-            xlib::XPlanesOfScreen(self.raw_screen)
-        }
+        unsafe { xlib::XPlanesOfScreen(self.raw_screen) }
     }
 
     pub fn root_window_id(&self) -> Option<xlib::Window> {
-        let id = unsafe {
-            xlib::XRootWindowOfScreen(self.raw_screen)
-        };
+        let id = unsafe { xlib::XRootWindowOfScreen(self.raw_screen) };
 
         if id == 0 {
             None
@@ -168,11 +134,13 @@ impl Screen {
     ///
     /// Returns error if this Screen does not support `visual`.
     pub fn create_window_builder(&self, visual: Visual) -> Result<WindowBuilder, ()> {
-
         let created_colormap = CreatedColormap::create(self.display_handle.clone(), self, &visual)?;
 
-        let window_builder = WindowBuilder::new(self.display_handle.clone(), self.root_window_id().unwrap_or(0), true)?
-            .set_colormap_and_visual(created_colormap, visual);
+        let window_builder = WindowBuilder::new(
+            self.display_handle.clone(),
+            self.root_window_id().unwrap_or(0),
+            true,
+        )?.set_colormap_and_visual(created_colormap, visual);
 
         Ok(window_builder)
     }
@@ -184,7 +152,10 @@ impl Screen {
     /// protocol fails.
     ///
     /// See also documentation for `Display::send_event`.
-    pub fn send_ewmh_client_message_event(&self, client_message_event: &mut ClientMessageEventCreator) -> Result<(), ()> {
+    pub fn send_ewmh_client_message_event(
+        &self,
+        client_message_event: &mut ClientMessageEventCreator,
+    ) -> Result<(), ()> {
         let window_id = self.root_window_id().ok_or(())?;
 
         send_event(
@@ -192,15 +163,13 @@ impl Screen {
             window_id,
             false,
             EventMask::SUBSTRUCTURE_NOTIFY | EventMask::SUBSTRUCTURE_REDIRECT,
-            client_message_event
+            client_message_event,
         )
     }
 }
-
 
 pub enum BackingStore {
     WhenMapped,
     NotUseful,
     Always,
 }
-
