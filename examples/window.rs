@@ -1,14 +1,12 @@
 extern crate x11_wrapper;
 
-use std::thread;
-use std::time::Duration;
-
+use x11_wrapper::core::window::input_output::{InputOutputWindowBuilder, WindowVisual};
 use x11_wrapper::core::display::Display;
 use x11_wrapper::core::event::{EventMask, SimpleEvent};
-use x11_wrapper::core::window::input_output::StackMode;
 use x11_wrapper::core::utils::Text;
 use x11_wrapper::protocol::Protocols;
-use x11_wrapper::property::NetWmStateHandler;
+use x11_wrapper::property::ewmh::NetWmStateHandler;
+use x11_wrapper::core::window::attribute::{CommonAttributes, InputOutputWindowAttributes};
 
 fn main() {
     println!("Hello world");
@@ -21,27 +19,29 @@ fn main() {
     println!("server vendor: {:?}", display.server_vendor());
     println!("vendor release: {}", display.vendor_release());
 
-    let default_screen = display.default_screen();
 
-    let default_visual = default_screen.default_visual().unwrap();
-
-    let mut window = default_screen
-        .create_window_builder(default_visual)
-        .unwrap()
-        .build_input_output_window()
-        .unwrap();
+    let window_title = Text::new(&display, "Hello world".to_string()).unwrap();
+    let window_icon_text = Text::new(&display, "Window".to_string()).unwrap();
 
     let event_mask = EventMask::KEY_PRESS | EventMask::KEY_RELEASE | EventMask::BUTTON_PRESS
         | EventMask::BUTTON_RELEASE | EventMask::POINTER_MOTION
         | EventMask::ENTER_WINDOW | EventMask::LEAVE_WINDOW
         | EventMask::FOCUS_CHANGE | EventMask::STRUCTURE_NOTIFY;
 
-    window.select_input(event_mask);
+    let default_screen = display.default_screen();
+    let default_visual = default_screen.default_visual().unwrap();
 
-    let window_title = Text::new(&display, "Hello world".to_string()).unwrap();
+    let mut window_builder = InputOutputWindowBuilder::new(
+        &default_screen,
+        WindowVisual::Visual(default_visual)
+    ).unwrap();
+
+    window_builder.set_event_mask(event_mask);
+    window_builder.set_background_pixel(0x000000);
+
+    let mut window = window_builder.build_input_output_window().unwrap();
+
     window.set_window_name(window_title);
-
-    let window_icon_text = Text::new(&display, "Window".to_string()).unwrap();
     window.set_window_icon_name(window_icon_text);
 
     window = window
@@ -71,14 +71,11 @@ fn main() {
             // Key W
             &SimpleEvent::KeyRelease { keycode: 25 } => {
                 let event = net_wm_state_handler.toggle_fullscreen(&window);
-                default_screen.send_ewmh_client_message_event(event);
+                default_screen.send_ewmh_client_message_event(event).unwrap();
             }
             // Key Q
             &SimpleEvent::KeyRelease { keycode: 24 } => {
-                //window.set_stack_mode(StackMode::Below);
-                //window.lower();
-                window.iconify(&default_screen);
-                //window.set_stack_mode_top_level_window(&default_screen, StackMode::Below)
+                window.iconify(&default_screen).unwrap();
             }
             &SimpleEvent::ClientMessage(e) => {
                 if delete_window_handler.check_event(e) {
