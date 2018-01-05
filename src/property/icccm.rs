@@ -12,7 +12,7 @@ use core::utils::{Text, AtomList};
 
 impl TopLevelInputOutputWindow {
     /// Set `WM_NAME` property.
-    pub fn set_window_name(&mut self, mut text: Text) {
+    pub fn set_window_name(self, mut text: Text) -> Self {
         unsafe {
             xlib::XSetWMName(
                 self.raw_display(),
@@ -20,10 +20,11 @@ impl TopLevelInputOutputWindow {
                 text.raw_text_property(),
             );
         }
+        self
     }
 
     /// Set `WM_ICON_NAME` property.
-    pub fn set_window_icon_name(&mut self, mut text: Text) {
+    pub fn set_window_icon_name(self, mut text: Text) -> Self {
         unsafe {
             xlib::XSetWMIconName(
                 self.raw_display(),
@@ -31,13 +32,15 @@ impl TopLevelInputOutputWindow {
                 text.raw_text_property(),
             );
         }
+
+        self
     }
 
     /// Set `WM_HINTS` property.
     ///
     /// Returns error if there is no enough memory to
     /// allocate `xlib::XWMHints` structure.
-    pub fn hints_configurator(self) -> Result<HintsConfigurator, Self> {
+    pub fn start_configuring_hints(self) -> Result<HintsConfigurator, Self> {
         HintsConfigurator::new(self)
     }
 
@@ -45,12 +48,12 @@ impl TopLevelInputOutputWindow {
     ///
     /// Returns error if there is no enough memory to
     /// allocate `xlib::XSizeHints` structure.
-    pub fn normal_hints_configurator(self) -> Result<NormalHintsConfigurator, Self> {
+    pub fn start_configuring_normal_hints(self) -> Result<NormalHintsConfigurator, Self> {
         NormalHintsConfigurator::new(self)
     }
 
     /// Set `WM_PROTOCOLS` property.
-    pub fn set_protocols(&mut self, mut atom_list: AtomList) -> Result<(), ()> {
+    pub fn set_protocols(self, mut atom_list: AtomList) -> Result<Self, Self> {
         let status = unsafe {
             xlib::XSetWMProtocols(
                 self.raw_display(),
@@ -61,9 +64,9 @@ impl TopLevelInputOutputWindow {
         };
 
         if status == 0 {
-            Err(())
+            Err(self)
         } else {
-            Ok(())
+            Ok(self)
         }
     }
 }

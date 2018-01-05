@@ -1,6 +1,6 @@
 extern crate x11_wrapper;
 
-use x11_wrapper::core::window::input_output::{InputOutputWindowBuilder, WindowVisual};
+use x11_wrapper::core::window::input_output::{InputOutputWindowBuilder};
 use x11_wrapper::core::display::Display;
 use x11_wrapper::core::event::{EventMask, SimpleEvent};
 use x11_wrapper::core::utils::Text;
@@ -31,36 +31,28 @@ fn main() {
     let default_screen = display.default_screen();
     let default_visual = default_screen.default_visual().unwrap();
 
-    let mut window_builder = InputOutputWindowBuilder::new(
-        &default_screen,
-        WindowVisual::Visual(default_visual)
-    ).unwrap();
-
-    window_builder.set_event_mask(event_mask);
-    window_builder.set_background_pixel(0x000000);
-
-    let mut window = window_builder.build_input_output_window().unwrap();
-
-    window.set_window_name(window_title);
-    window.set_window_icon_name(window_icon_text);
-
-    window = window
-        .normal_hints_configurator()
-        .unwrap()
-        .set_min_window_size(640, 480)
-        .end();
-
     let mut protocols = Protocols::new();
     let delete_window_handler = protocols.enable_delete_window(&display).unwrap();
-    window
+
+    let mut window = InputOutputWindowBuilder::new(&default_screen, default_visual)
+        .unwrap()
+        .set_event_mask(event_mask)
+        .set_background_pixel(0x000000)
+        .build_input_output_window()
+        .unwrap()
+        .set_window_name(window_title)
+        .set_window_icon_name(window_icon_text)
+        .start_configuring_normal_hints()
+        .unwrap()
+        .set_min_window_size(640, 480)
+        .end()
         .set_protocols(protocols.protocol_atom_list())
-        .unwrap();
-
-    let mut net_wm_state_handler = NetWmStateHandler::new(&display).unwrap();
-
-    window.map_window();
+        .unwrap()
+        .map_window();
 
     display.flush_output_buffer();
+
+    let mut net_wm_state_handler = NetWmStateHandler::new(&display).unwrap();
 
     loop {
         let event = display.read_event_blocking().event().into_simple_event();

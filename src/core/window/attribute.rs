@@ -126,14 +126,15 @@ macro_rules! attribute_functions {
             AttributeConversions::from_xlib_attribute(self.attributes().attributes.$attribute_field)
         }
 
-        fn $setter_name(&mut self, value: $attribute_type ) {
+        fn $setter_name(mut self, value: $attribute_type ) -> Self {
             self.attributes_mut().attributes.$attribute_field = value.to_xlib_attribute();
             self.attributes_mut().selected_attributes |= $attribute_mask;
+            self
         }
     };
 }
 
-pub trait GetAndSetAttributes {
+pub trait GetAndSetAttributes: Sized {
     fn attributes(&self) -> &WindowAttributes;
     fn attributes_mut(&mut self) -> &mut WindowAttributes;
 }

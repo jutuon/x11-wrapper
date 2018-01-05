@@ -1,6 +1,6 @@
 //! InputOutput windows.
 
-use std::os::raw::{c_int, c_uint, c_void};
+use std::os::raw::{c_int, c_uint};
 use std::sync::Arc;
 
 use x11::xlib;
@@ -12,7 +12,6 @@ use core::display::{DisplayHandle};
 use core::color::{ColormapID, CreatedColormap};
 use core::visual::Visual;
 use core::screen::Screen;
-use core::utils::{AtomList, Text};
 
 pub struct BuildTopLevelWindow;
 
@@ -90,9 +89,9 @@ impl InputOutputWindowBuilder<BuildTopLevelWindow> {
     ///
     /// Returns error if `Screen` does not support `Visual` or `Screen`'s root window
     /// is not found.
-    pub fn new(
+    pub fn new<T: Into<WindowVisual>>(
         screen: &Screen,
-        window_visual: WindowVisual,
+        window_visual: T,
     ) -> Result<Self, ()> {
         let parent_window_id = screen.root_window_id().ok_or(())?;
 
@@ -108,10 +107,10 @@ impl InputOutputWindowBuilder<BuildTopLevelWindow> {
             builder: BuildTopLevelWindow,
         };
 
-        if let WindowVisual::Visual(visual) = window_visual {
+        if let WindowVisual::Visual(visual) = window_visual.into() {
             let created_colormap = CreatedColormap::create(screen.display_handle().clone(), screen, &visual)?;
 
-            builder.set_colormap(Colormap::Colormap(created_colormap.id()));
+            builder = builder.set_colormap(Colormap::Colormap(created_colormap.id()));
             builder.colormap_and_visual = Some((created_colormap, visual));
         }
 
@@ -173,18 +172,22 @@ pub struct TopLevelInputOutputWindow {
 }
 
 impl TopLevelInputOutputWindow {
-    pub fn map_window(&mut self) {
+    pub fn map_window(self) -> Self {
         // TODO: check errors
 
         unsafe {
             xlib::XMapWindow(self.display_handle.raw_display(), self.window_id);
         }
+
+        self
     }
 
-    pub fn unmap_window(&mut self) {
+    pub fn unmap_window(self) -> Self {
         unsafe {
             xlib::XUnmapWindow(self.display_handle.raw_display(), self.window_id);
         }
+
+        self
     }
 
     pub fn iconify(&mut self, screen: &Screen) -> Result<(), ()> {
@@ -257,4 +260,10 @@ impl Window for TopLevelInputOutputWindow {
 pub enum WindowVisual {
     Visual(Visual),
     CopyFromParent,
+}
+
+impl From<Visual> for WindowVisual {
+    fn from(visual: Visual) -> Self {
+        WindowVisual::Visual(visual)
+    }
 }
