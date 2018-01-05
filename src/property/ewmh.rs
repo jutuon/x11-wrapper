@@ -1,4 +1,4 @@
-//! Set window properties.
+//! Extended Window Manager Hints 1.3 properties.
 
 use std::os::raw::c_long;
 
