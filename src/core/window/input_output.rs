@@ -187,46 +187,6 @@ impl TopLevelInputOutputWindow {
         }
     }
 
-
-    pub fn set_stack_mode(&mut self, stack_mode: StackMode) {
-        self.set_sibling_and_stack_mode::<TopLevelInputOutputWindow>(None, stack_mode);
-    }
-
-    /// If sibling is `None`, sibling configuration option is not set.
-    /// If sibling is `Some(sibling)`, the window in sibling argument must
-    /// really be a sibling window or BadMatch error is generated.
-    pub fn set_sibling_and_stack_mode<W: Window>(
-        &mut self,
-        sibling: Option<&W>,
-        stack_mode: StackMode,
-    ) {
-        let (sibling, configure_mask) = if let Some(w) = sibling {
-            (w.window_id(), xlib::CWSibling | xlib::CWStackMode)
-        } else {
-            (0, xlib::CWStackMode)
-        };
-
-        let mut changes = xlib::XWindowChanges {
-            x: 0,
-            y: 0,
-            width: 1,
-            height: 1,
-            border_width: 0,
-            sibling,
-            stack_mode: stack_mode as c_int,
-        };
-
-        unsafe {
-            xlib::XConfigureWindow(
-                self.display_handle.raw_display(),
-                self.window_id(),
-                configure_mask as c_uint,
-                &mut changes,
-            );
-        }
-    }
-
-
     pub fn iconify(&mut self, screen: &Screen) -> Result<(), ()> {
         unsafe {
             let status = xlib::XIconifyWindow(
@@ -249,60 +209,6 @@ impl TopLevelInputOutputWindow {
                 self.display_handle.raw_display(),
                 self.window_id,
                 screen.screen_number(),
-            );
-
-            if status == 0 {
-                Err(())
-            } else {
-                Ok(())
-            }
-        }
-    }
-
-    pub fn set_stack_mode_top_level_window(
-        &mut self,
-        screen: &Screen,
-        stack_mode: StackMode,
-    ) -> Result<(), ()> {
-        self.set_sibling_and_stack_mode_top_level_window::<TopLevelInputOutputWindow>(
-            screen,
-            None,
-            stack_mode,
-        )
-    }
-
-    /// If sibling is `None`, sibling configuration option is not set.
-    /// If sibling is `Some(sibling)`, the window in sibling argument must
-    /// really be a sibling window or BadMatch error is generated.
-    pub fn set_sibling_and_stack_mode_top_level_window<W: Window>(
-        &mut self,
-        screen: &Screen,
-        sibling: Option<&W>,
-        stack_mode: StackMode,
-    ) -> Result<(), ()> {
-        let (sibling, configure_mask) = if let Some(w) = sibling {
-            (w.window_id(), xlib::CWSibling | xlib::CWStackMode)
-        } else {
-            (0, xlib::CWStackMode)
-        };
-
-        let mut changes = xlib::XWindowChanges {
-            x: 0,
-            y: 0,
-            width: 1,
-            height: 1,
-            border_width: 0,
-            sibling,
-            stack_mode: stack_mode as c_int,
-        };
-
-        unsafe {
-            let status = xlib::XReconfigureWMWindow(
-                self.display_handle.raw_display(),
-                self.window_id(),
-                screen.screen_number(),
-                configure_mask as c_uint,
-                &mut changes,
             );
 
             if status == 0 {
@@ -346,15 +252,6 @@ impl Window for TopLevelInputOutputWindow {
     fn window_id(&self) -> xlib::Window {
         self.window_id
     }
-}
-
-#[repr(i16)]
-pub enum StackMode {
-    Above = xlib::Above as i16,
-    Below = xlib::Below as i16,
-    TopIf = xlib::TopIf as i16,
-    BottomIf = xlib::BottomIf as i16,
-    Opposite = xlib::Opposite as i16,
 }
 
 pub enum WindowVisual {
