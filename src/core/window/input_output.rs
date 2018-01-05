@@ -81,20 +81,8 @@ macro_rules! impl_traits {
 
 impl_traits!(
     InputOutputWindowBuilder<T>,
-    AttributeBackgroundPixmap,
-    AttributeBackgroundPixel,
-    AttributeBorderPixmap,
-    AttributeBorderPixel,
-    AttributeGravity,
-    AttributeWindowGravity,
-    AttributeBackingStore,
-    AttributeBackingPlanes,
-    AttributeBackingPixel,
-    AttributeSaveUnder,
-    AttributeEventMask,
-    AttributeDoNotPropagate,
-    AttributeColormap,
-    AttributeCursor
+    InputOutputWindowAttributes,
+    CommonAttributes
 );
 
 impl InputOutputWindowBuilder<BuildTopLevelWindow> {
@@ -346,20 +334,8 @@ impl GetAndSetAttributes for TopLevelInputOutputWindow {
 
 impl_traits!(
     TopLevelInputOutputWindow,
-    AttributeBackgroundPixmap,
-    AttributeBackgroundPixel,
-    AttributeBorderPixmap,
-    AttributeBorderPixel,
-    AttributeGravity,
-    AttributeWindowGravity,
-    AttributeBackingStore,
-    AttributeBackingPlanes,
-    AttributeBackingPixel,
-    AttributeSaveUnder,
-    AttributeEventMask,
-    AttributeDoNotPropagate,
-    AttributeColormap,
-    AttributeCursor
+    InputOutputWindowAttributes,
+    CommonAttributes
 );
 
 impl Window for TopLevelInputOutputWindow {

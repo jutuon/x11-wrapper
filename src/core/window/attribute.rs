@@ -120,17 +120,15 @@ macro_rules! impl_conversion {
 impl_conversion!(c_ulong, c_int);
 
 
-macro_rules! attribute_trait {
-    ( $trait_name: tt, $attribute_field: tt: $attribute_type: ty, $setter_name: tt, $attribute_mask: expr) => {
-        pub trait $trait_name : GetAndSetAttributes {
-            fn $attribute_field(&self) -> $attribute_type {
-                AttributeConversions::from_xlib_attribute(self.attributes().attributes.$attribute_field)
-            }
+macro_rules! attribute_functions {
+    ( $attribute_field: tt: $attribute_type: ty, $setter_name: tt, $attribute_mask: expr) => {
+        fn $attribute_field(&self) -> $attribute_type {
+            AttributeConversions::from_xlib_attribute(self.attributes().attributes.$attribute_field)
+        }
 
-            fn $setter_name(&mut self, value: $attribute_type ) {
-                self.attributes_mut().attributes.$attribute_field = value.to_xlib_attribute();
-                self.attributes_mut().selected_attributes |= $attribute_mask;
-            }
+        fn $setter_name(&mut self, value: $attribute_type ) {
+            self.attributes_mut().attributes.$attribute_field = value.to_xlib_attribute();
+            self.attributes_mut().selected_attributes |= $attribute_mask;
         }
     };
 }
@@ -167,19 +165,7 @@ impl AttributeConversions for BackgroundPixmap {
     }
 }
 
-attribute_trait!(
-    AttributeBackgroundPixmap,
-    background_pixmap: BackgroundPixmap,
-    set_background_pixmap,
-    AttributeMask::BACK_PIXMAP
-);
 
-attribute_trait!(
-    AttributeBackgroundPixel,
-    background_pixel: c_ulong,
-    set_background_pixel,
-    AttributeMask::BACK_PIXEL
-);
 
 #[derive(Debug, Copy, Clone)]
 pub enum BorderPixmap {
@@ -206,19 +192,7 @@ impl AttributeConversions for BorderPixmap {
     }
 }
 
-attribute_trait!(
-    AttributeBorderPixmap,
-    border_pixmap: BorderPixmap,
-    set_border_pixmap,
-    AttributeMask::BORDER_PIXMAP
-);
 
-attribute_trait!(
-    AttributeBorderPixel,
-    border_pixel: c_ulong,
-    set_border_pixel,
-    AttributeMask::BORDER_PIXEL
-);
 
 #[derive(Debug, Copy, Clone)]
 pub enum Gravity {
@@ -255,14 +229,6 @@ impl AttributeConversions for Gravity  {
         }
     }
 }
-
-
-attribute_trait!(
-    AttributeGravity,
-    bit_gravity: Gravity,
-    set_bit_gravity,
-    AttributeMask::BIT_GRAVITY
-);
 
 
 #[derive(Debug, Copy, Clone)]
@@ -324,12 +290,7 @@ impl AttributeConversions for WindowGravity {
     }
 }
 
-attribute_trait!(
-    AttributeWindowGravity,
-    win_gravity: WindowGravity,
-    set_win_gravity,
-    AttributeMask::WIN_GRAVITY
-);
+
 
 #[derive(Debug, Clone, Copy)]
 pub enum BackingStore {
@@ -368,27 +329,7 @@ impl Default for BackingStore {
     }
 }
 
-attribute_trait!(
-    AttributeBackingStore,
-    backing_store: BackingStore,
-    set_backing_store,
-    AttributeMask::BACKING_STORE
-);
 
-
-attribute_trait!(
-    AttributeBackingPlanes,
-    backing_planes: c_ulong,
-    set_backing_planes,
-    AttributeMask::BACKING_PLANES
-);
-
-attribute_trait!(
-    AttributeBackingPixel,
-    backing_pixel: c_ulong,
-    set_backing_pixel,
-    AttributeMask::BACKING_PIXEL
-);
 
 #[derive(Debug, Copy, Clone)]
 pub struct SaveUnder(pub bool);
@@ -422,13 +363,6 @@ impl Default for SaveUnder {
     }
 }
 
-attribute_trait!(
-    AttributeSaveUnder,
-    save_under: SaveUnder,
-    set_save_under,
-    AttributeMask::SAVE_UNDER
-);
-
 impl AttributeConversions for EventMask {
     type Xlib = c_long;
 
@@ -446,13 +380,6 @@ impl AttributeConversions for EventMask {
         }
     }
 }
-
-attribute_trait!(
-    AttributeEventMask,
-    event_mask: EventMask,
-    set_event_mask,
-    AttributeMask::EVENT_MASK
-);
 
 bitflags!(
     pub struct DoNotPropagateMask: c_long {
@@ -489,12 +416,6 @@ impl AttributeConversions for DoNotPropagateMask {
     }
 }
 
-attribute_trait!(
-    AttributeDoNotPropagate,
-    do_not_propagate_mask: DoNotPropagateMask,
-    set_do_not_propagate,
-    AttributeMask::DONT_PROPAGATE
-);
 
 #[derive(Debug, Copy, Clone)]
 pub struct OverrideRedirect(pub bool);
@@ -528,12 +449,6 @@ impl Default for OverrideRedirect {
     }
 }
 
-attribute_trait!(
-    AttributeOverrideRedirect,
-    override_redirect: OverrideRedirect,
-    set_override_redirect,
-    AttributeMask::OVERRIDE_REDIRECT
-);
 
 #[derive(Debug, Clone, Copy)]
 pub enum Colormap {
@@ -560,13 +475,6 @@ impl AttributeConversions for Colormap {
     }
 }
 
-attribute_trait!(
-    AttributeColormap,
-    colormap: Colormap,
-    set_colormap,
-    AttributeMask::COLORMAP
-);
-
 #[derive(Debug, Clone, Copy)]
 pub enum Cursor {
     Cursor(xlib::Cursor),
@@ -592,12 +500,104 @@ impl AttributeConversions for Cursor {
     }
 }
 
-attribute_trait!(
-    AttributeCursor,
-    cursor: Cursor,
-    set_cursor,
-    AttributeMask::CURSOR
-);
+
+/// This attribute is separate trait because for top level
+/// windows this is always false.
+pub trait AttributeOverrideRedirect: GetAndSetAttributes {
+    attribute_functions!(
+        override_redirect: OverrideRedirect,
+        set_override_redirect,
+        AttributeMask::OVERRIDE_REDIRECT
+    );
+}
+
+pub trait CommonAttributes: GetAndSetAttributes {
+    attribute_functions!(
+        win_gravity: WindowGravity,
+        set_win_gravity,
+        AttributeMask::WIN_GRAVITY
+    );
+
+    attribute_functions!(
+        event_mask: EventMask,
+        set_event_mask,
+        AttributeMask::EVENT_MASK
+    );
+
+    attribute_functions!(
+        do_not_propagate_mask: DoNotPropagateMask,
+        set_do_not_propagate,
+        AttributeMask::DONT_PROPAGATE
+    );
+
+    attribute_functions!(
+        cursor: Cursor,
+        set_cursor,
+        AttributeMask::CURSOR
+    );
+}
+
+pub trait InputOutputWindowAttributes: GetAndSetAttributes {
+    attribute_functions!(
+        background_pixmap: BackgroundPixmap,
+        set_background_pixmap,
+        AttributeMask::BACK_PIXMAP
+    );
+
+    attribute_functions!(
+        background_pixel: c_ulong,
+        set_background_pixel,
+        AttributeMask::BACK_PIXEL
+    );
+
+    attribute_functions!(
+        border_pixmap: BorderPixmap,
+        set_border_pixmap,
+        AttributeMask::BORDER_PIXMAP
+    );
+
+    attribute_functions!(
+        border_pixel: c_ulong,
+        set_border_pixel,
+        AttributeMask::BORDER_PIXEL
+    );
+
+    attribute_functions!(
+        bit_gravity: Gravity,
+        set_bit_gravity,
+        AttributeMask::BIT_GRAVITY
+    );
+
+    attribute_functions!(
+        backing_store: BackingStore,
+        set_backing_store,
+        AttributeMask::BACKING_STORE
+    );
+
+    attribute_functions!(
+        backing_planes: c_ulong,
+        set_backing_planes,
+        AttributeMask::BACKING_PLANES
+    );
+
+    attribute_functions!(
+        backing_pixel: c_ulong,
+        set_backing_pixel,
+        AttributeMask::BACKING_PIXEL
+    );
+
+    attribute_functions!(
+        save_under: SaveUnder,
+        set_save_under,
+        AttributeMask::SAVE_UNDER
+    );
+
+    attribute_functions!(
+        colormap: Colormap,
+        set_colormap,
+        AttributeMask::COLORMAP
+    );
+}
 
 
 /*
