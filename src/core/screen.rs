@@ -3,11 +3,10 @@ use std::sync::Arc;
 
 use x11::xlib;
 
-use super::color::{CreatedColormap, DefaultColormap};
+use super::color::{DefaultColormap};
 use super::display::DisplayHandle;
 use super::error::{QueryError, QueryResult};
 use super::visual::Visual;
-use super::window::input_output::WindowBuilder;
 use super::event::{send_event, ClientMessageEventCreator, EventMask};
 
 pub struct Screen {
@@ -25,6 +24,10 @@ impl Screen {
 
     pub fn raw_screen(&self) -> *mut xlib::Screen {
         self.raw_screen
+    }
+
+    pub(crate) fn display_handle(&self) -> &Arc<DisplayHandle> {
+        &self.display_handle
     }
 
     pub fn black_pixel(&self) -> c_ulong {
@@ -128,21 +131,6 @@ impl Screen {
         } else {
             Some(id)
         }
-    }
-
-    /// Parent of created window will be root window of this screen.
-    ///
-    /// Returns error if this Screen does not support `visual`.
-    pub fn create_window_builder(&self, visual: Visual) -> Result<WindowBuilder, ()> {
-        let created_colormap = CreatedColormap::create(self.display_handle.clone(), self, &visual)?;
-
-        let window_builder = WindowBuilder::new(
-            self.display_handle.clone(),
-            self.root_window_id().unwrap_or(0),
-            true,
-        )?.set_colormap_and_visual(created_colormap, visual);
-
-        Ok(window_builder)
     }
 
     /// Send ClientMessage event to root window as

@@ -6,6 +6,7 @@ use x11::xlib;
 
 use super::display::DisplayHandle;
 
+#[derive(Debug)]
 pub struct Visual {
     display_handle: Arc<DisplayHandle>,
     visual_info: xlib::XVisualInfo,

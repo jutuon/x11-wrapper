@@ -8,9 +8,20 @@ use x11::xlib;
 use core::event::EventMask;
 use core::utils::{XLIB_NONE};
 
+#[derive(Debug)]
 pub struct WindowAttributes {
     attributes: xlib::XSetWindowAttributes,
     selected_attributes: AttributeMask,
+}
+
+impl WindowAttributes {
+    pub(crate) fn selected_attributes(&self) -> AttributeMask {
+        self.selected_attributes
+    }
+
+    pub(crate) fn xlib_attributes_mut_ptr(&mut self) -> *mut xlib::XSetWindowAttributes {
+        &mut self.attributes
+    }
 }
 
 impl Default for WindowAttributes {
@@ -63,7 +74,7 @@ impl Default for WindowAttributes {
 
 
 bitflags! {
-    struct AttributeMask: c_ulong {
+    pub(crate) struct AttributeMask: c_ulong {
         const BACK_PIXMAP = xlib::CWBackPixmap;
         const BACK_PIXEL = xlib::CWBackPixel;
         const BORDER_PIXMAP = xlib::CWBorderPixmap;
@@ -410,6 +421,13 @@ impl Default for SaveUnder {
         SaveUnder(false)
     }
 }
+
+attribute_trait!(
+    AttributeSaveUnder,
+    save_under: SaveUnder,
+    set_save_under,
+    AttributeMask::SAVE_UNDER
+);
 
 impl AttributeConversions for EventMask {
     type Xlib = c_long;

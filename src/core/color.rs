@@ -35,6 +35,7 @@ pub struct CreatedColormap {
 }
 
 impl CreatedColormap {
+    /// Returns error if `Screen` does not support `Visual`.
     pub(crate) fn create(
         display_handle: Arc<DisplayHandle>,
         screen: &Screen,
@@ -53,7 +54,7 @@ impl CreatedColormap {
                 xlib::AllocNone,
             )
         };
-
+        //TODO: colormap AllocAll
         if colormap == 0 {
             // TODO: check errors
 

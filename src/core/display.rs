@@ -61,6 +61,10 @@ impl Display {
         })
     }
 
+    pub(crate) fn display_handle(&self) -> &Arc<DisplayHandle> {
+        &self.display_handle
+    }
+
     pub fn raw_display(&self) -> *mut xlib::Display {
         self.display_handle.raw_display
     }
