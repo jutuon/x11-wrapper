@@ -5,7 +5,8 @@ use std::os::raw::c_long;
 use core::utils::{Atom, AtomName};
 use core::event::ClientMessageEventCreator;
 use core::display::Display;
-use core::window::input_output::{TopLevelInputOutputWindow, WindowID};
+use core::window::input_output::{TopLevelInputOutputWindow};
+use core::window::Window;
 
 /// Handler for `_NET_WM_STATE`.
 pub struct NetWmStateHandler {

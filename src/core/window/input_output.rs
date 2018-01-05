@@ -2,11 +2,11 @@
 
 use std::os::raw::{c_int, c_uint, c_void};
 use std::sync::Arc;
-use std::marker::PhantomData;
 
 use x11::xlib;
 
-use core::window::attribute::*;
+use super::attribute::*;
+use super::Window;
 
 use core::display::{DisplayHandle};
 use core::color::{ColormapID, CreatedColormap};
@@ -207,7 +207,7 @@ impl TopLevelInputOutputWindow {
     /// If sibling is `None`, sibling configuration option is not set.
     /// If sibling is `Some(sibling)`, the window in sibling argument must
     /// really be a sibling window or BadMatch error is generated.
-    pub fn set_sibling_and_stack_mode<W: WindowID>(
+    pub fn set_sibling_and_stack_mode<W: Window>(
         &mut self,
         sibling: Option<&W>,
         stack_mode: StackMode,
@@ -286,7 +286,7 @@ impl TopLevelInputOutputWindow {
     /// If sibling is `None`, sibling configuration option is not set.
     /// If sibling is `Some(sibling)`, the window in sibling argument must
     /// really be a sibling window or BadMatch error is generated.
-    pub fn set_sibling_and_stack_mode_top_level_window<W: WindowID>(
+    pub fn set_sibling_and_stack_mode_top_level_window<W: Window>(
         &mut self,
         screen: &Screen,
         sibling: Option<&W>,
@@ -322,62 +322,6 @@ impl TopLevelInputOutputWindow {
             } else {
                 Ok(())
             }
-        }
-    }
-
-    /// Set `WM_NAME` property.
-    pub fn set_window_name(&mut self, mut text: Text) {
-        unsafe {
-            xlib::XSetWMName(
-                self.display_handle.raw_display(),
-                self.window_id(),
-                text.raw_text_property(),
-            );
-        }
-    }
-
-    /// Set `WM_ICON_NAME` property.
-    pub fn set_window_icon_name(&mut self, mut text: Text) {
-        unsafe {
-            xlib::XSetWMIconName(
-                self.display_handle.raw_display(),
-                self.window_id(),
-                text.raw_text_property(),
-            );
-        }
-    }
-
-    /// Set `WM_HINTS` property.
-    ///
-    /// Returns error if there is no enough memory to
-    /// allocate `xlib::XWMHints` structure.
-    pub fn hints_configurator(self) -> Result<HintsConfigurator, Self> {
-        HintsConfigurator::new(self)
-    }
-
-    /// Set `WM_NORMAL_HINTS` property.
-    ///
-    /// Returns error if there is no enough memory to
-    /// allocate `xlib::XSizeHints` structure.
-    pub fn normal_hints_configurator(self) -> Result<NormalHintsConfigurator, Self> {
-        NormalHintsConfigurator::new(self)
-    }
-
-    /// Set `WM_PROTOCOLS` property.
-    pub fn set_protocols(&mut self, mut atom_list: AtomList) -> Result<(), ()> {
-        let status = unsafe {
-            xlib::XSetWMProtocols(
-                self.display_handle.raw_display(),
-                self.window_id,
-                atom_list.as_mut_ptr(),
-                atom_list.len() as c_int,
-            )
-        };
-
-        if status == 0 {
-            Err(())
-        } else {
-            Ok(())
         }
     }
 }
@@ -418,14 +362,14 @@ impl_traits!(
     AttributeCursor
 );
 
-impl WindowID for TopLevelInputOutputWindow {
+impl Window for TopLevelInputOutputWindow {
+    fn raw_display(&self) -> *mut xlib::Display {
+        self.display_handle.raw_display()
+    }
+
     fn window_id(&self) -> xlib::Window {
         self.window_id
     }
-}
-
-pub trait WindowID {
-    fn window_id(&self) -> xlib::Window;
 }
 
 #[repr(i16)]
@@ -436,159 +380,6 @@ pub enum StackMode {
     BottomIf = xlib::BottomIf as i16,
     Opposite = xlib::Opposite as i16,
 }
-
-/// Allocated `xlib::XWMHints` structure.
-struct Hints {
-    wm_hints_ptr: *mut xlib::XWMHints,
-    _marker: PhantomData<xlib::XWMHints>,
-}
-
-impl Hints {
-    /// Returns error if there is no enough memory to
-    /// allocate `xlib::XWMHints` structure.
-    fn new() -> Result<Self, ()> {
-        let wm_hints_ptr = unsafe { xlib::XAllocWMHints() };
-
-        if wm_hints_ptr.is_null() {
-            Err(())
-        } else {
-            Ok(Self {
-                wm_hints_ptr,
-                _marker: PhantomData,
-            })
-        }
-    }
-
-    fn as_mut_ptr(&mut self) -> *mut xlib::XWMHints {
-        self.wm_hints_ptr
-    }
-}
-
-impl Drop for Hints {
-    fn drop(&mut self) {
-        unsafe {
-            xlib::XFree(self.wm_hints_ptr as *mut c_void);
-        }
-    }
-}
-
-/// Sets `TopLevelInputOutputWindow`'s `WM_HINTS` property.
-pub struct HintsConfigurator {
-    window: TopLevelInputOutputWindow,
-    hints: Hints,
-}
-
-impl HintsConfigurator {
-    /// Returns error if there is no enough memory to
-    /// allocate `xlib::XWMHints` structure.
-    fn new(window: TopLevelInputOutputWindow) -> Result<Self, TopLevelInputOutputWindow> {
-        let hints = match Hints::new() {
-            Ok(hints) => hints,
-            Err(()) => return Err(window),
-        };
-
-        Ok(Self { window, hints })
-    }
-
-    pub fn end(mut self) -> TopLevelInputOutputWindow {
-        unsafe {
-            xlib::XSetWMHints(
-                self.window.display_handle.raw_display(),
-                self.window.window_id(),
-                self.hints.as_mut_ptr(),
-            );
-        }
-
-        self.window
-    }
-}
-
-/// Allocated `xlib::XSizeHints` structure.
-struct SizeHints {
-    size_hints_ptr: *mut xlib::XSizeHints,
-    _marker: PhantomData<xlib::XSizeHints>,
-}
-
-impl SizeHints {
-    /// Returns error if there is no enough memory to
-    /// allocate `xlib::XSizeHints` structure.
-    fn new() -> Result<Self, ()> {
-        let size_hints_ptr = unsafe { xlib::XAllocSizeHints() };
-
-        if size_hints_ptr.is_null() {
-            Err(())
-        } else {
-            Ok(Self {
-                size_hints_ptr,
-                _marker: PhantomData,
-            })
-        }
-    }
-
-    fn as_mut_ptr(&mut self) -> *mut xlib::XSizeHints {
-        self.size_hints_ptr
-    }
-}
-
-impl Drop for SizeHints {
-    fn drop(&mut self) {
-        unsafe {
-            xlib::XFree(self.size_hints_ptr as *mut c_void);
-        }
-    }
-}
-
-/// Sets `TopLevelInputOutputWindow`'s `WM_NORMAL_HINTS` property.
-pub struct NormalHintsConfigurator {
-    window: TopLevelInputOutputWindow,
-    size_hints: SizeHints,
-}
-
-impl NormalHintsConfigurator {
-    /// Returns error if there is no enough memory to
-    /// allocate `xlib::XSizeHints` structure.
-    fn new(window: TopLevelInputOutputWindow) -> Result<Self, TopLevelInputOutputWindow> {
-        let size_hints = match SizeHints::new() {
-            Ok(hints) => hints,
-            Err(()) => return Err(window),
-        };
-
-        Ok(Self { window, size_hints })
-    }
-
-    pub fn set_max_window_size(mut self, width: c_int, height: c_int) -> Self {
-        unsafe {
-            (*self.size_hints.as_mut_ptr()).flags |= xlib::PMaxSize;
-            (*self.size_hints.as_mut_ptr()).max_width = width;
-            (*self.size_hints.as_mut_ptr()).max_height = height;
-        }
-
-        self
-    }
-
-    pub fn set_min_window_size(mut self, width: c_int, height: c_int) -> Self {
-        unsafe {
-            (*self.size_hints.as_mut_ptr()).flags |= xlib::PMinSize;
-            (*self.size_hints.as_mut_ptr()).min_width = width;
-            (*self.size_hints.as_mut_ptr()).min_height = height;
-        }
-
-        self
-    }
-
-    pub fn end(mut self) -> TopLevelInputOutputWindow {
-        unsafe {
-            xlib::XSetWMNormalHints(
-                self.window.display_handle.raw_display(),
-                self.window.window_id(),
-                self.size_hints.as_mut_ptr(),
-            );
-        }
-
-        self.window
-    }
-}
-
 
 pub enum WindowVisual {
     Visual(Visual),
