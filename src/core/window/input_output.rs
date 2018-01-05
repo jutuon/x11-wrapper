@@ -11,7 +11,6 @@ use core::window::attribute::*;
 use core::display::{DisplayHandle};
 use core::color::{ColormapID, CreatedColormap};
 use core::visual::Visual;
-use core::event::EventMask;
 use core::screen::Screen;
 use core::utils::{AtomList, Text};
 
@@ -94,7 +93,6 @@ impl_traits!(
     AttributeSaveUnder,
     AttributeEventMask,
     AttributeDoNotPropagate,
-    AttributeOverrideRedirect,
     AttributeColormap,
     AttributeCursor
 );
@@ -195,24 +193,12 @@ impl TopLevelInputOutputWindow {
         }
     }
 
-    pub fn select_input(&mut self, event_mask: EventMask) {
-        // TODO: check errors
-
+    pub fn unmap_window(&mut self) {
         unsafe {
-            xlib::XSelectInput(
-                self.display_handle.raw_display(),
-                self.window_id,
-                event_mask.bits(),
-            );
+            xlib::XUnmapWindow(self.display_handle.raw_display(), self.window_id);
         }
     }
 
-    pub fn map_raised(&mut self) {
-        // TODO: can generate BadWindow errors
-        unsafe {
-            xlib::XMapRaised(self.display_handle.raw_display(), self.window_id);
-        }
-    }
 
     pub fn set_stack_mode(&mut self, stack_mode: StackMode) {
         self.set_sibling_and_stack_mode::<TopLevelInputOutputWindow>(None, stack_mode);
@@ -252,29 +238,6 @@ impl TopLevelInputOutputWindow {
         }
     }
 
-    pub fn lower(&mut self) {
-        unsafe {
-            xlib::XLowerWindow(self.display_handle.raw_display(), self.window_id);
-        }
-    }
-
-    pub fn raise(&mut self) {
-        unsafe {
-            xlib::XRaiseWindow(self.display_handle.raw_display(), self.window_id);
-        }
-    }
-
-    pub fn circulate_subwindows_up(&mut self) {
-        unsafe {
-            xlib::XCirculateSubwindowsUp(self.display_handle.raw_display(), self.window_id);
-        }
-    }
-
-    pub fn circulate_subwindows_down(&mut self) {
-        unsafe {
-            xlib::XCirculateSubwindowsDown(self.display_handle.raw_display(), self.window_id);
-        }
-    }
 
     pub fn iconify(&mut self, screen: &Screen) -> Result<(), ()> {
         unsafe {
@@ -451,7 +414,6 @@ impl_traits!(
     AttributeSaveUnder,
     AttributeEventMask,
     AttributeDoNotPropagate,
-    AttributeOverrideRedirect,
     AttributeColormap,
     AttributeCursor
 );
