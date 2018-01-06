@@ -515,3 +515,32 @@ pub(crate) fn to_xlib_bool(value: bool) -> xlib::Bool {
         xlib::False
     }
 }
+
+
+pub trait Selection: Window {
+    /// Set this window to be selection owner. Sets last-change time to current time.
+    fn set_owner(&self, selection: Atom) {
+        unsafe {
+            xlib::XSetSelectionOwner(self.raw_display(), selection.atom_id(), self.window_id(), xlib::CurrentTime);
+        }
+    }
+
+    fn get_owner_window_id(&self, selection: Atom) -> xlib::Window {
+        unsafe {
+            xlib::XGetSelectionOwner(self.raw_display(), selection.atom_id())
+        }
+    }
+
+    fn request_selection_conversion(&self, selection: Atom, target: Atom, property: Atom) {
+        unsafe {
+            xlib::XConvertSelection(
+                self.raw_display(),
+                selection.atom_id(),
+                target.atom_id(),
+                property.atom_id(),
+                self.window_id(),
+                xlib::CurrentTime
+            );
+        }
+    }
+}
