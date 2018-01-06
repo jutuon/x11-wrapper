@@ -4,13 +4,17 @@ pub mod input;
 pub mod input_output;
 pub mod attribute;
 
-use std::os::raw::{c_uint, c_int};
+use std::marker::PhantomData;
+use std::os::raw::{c_uint, c_int, c_long, c_void, c_ulong};
 use std::mem;
+use std::slice;
+use std::ptr;
 
 use x11::xlib;
 
 use self::input_output::TopLevelInputOutputWindow;
 use core::screen::Screen;
+use core::utils::{Atom, XLIB_NONE};
 
 /// A non root window
 pub trait Window {
@@ -125,4 +129,198 @@ pub enum StackMode {
     TopIf = xlib::TopIf as i16,
     BottomIf = xlib::BottomIf as i16,
     Opposite = xlib::Opposite as i16,
+}
+
+#[derive(Debug)]
+pub struct PropertyHandle<T> {
+    property_type: Atom,
+    data_ptr: *const T,
+    len: usize,
+    _marker: PhantomData<T>,
+}
+
+impl <T> PropertyHandle<T> {
+    /// Panics if data is null.
+    fn new(data_ptr: *const T, len: usize, property_type: Atom) -> Self {
+        if data_ptr.is_null() {
+            panic!("data is null");
+        }
+
+        Self {
+            property_type,
+            data_ptr,
+            len,
+            _marker: PhantomData
+        }
+    }
+
+    pub fn data<'a>(&'a self) -> &'a [T] {
+        unsafe {
+            slice::from_raw_parts(self.data_ptr, self.len)
+        }
+    }
+
+    pub fn property_type(&self) -> Atom {
+        self.property_type
+    }
+}
+
+impl <T> Drop for PropertyHandle<T> {
+    fn drop(&mut self) {
+        unsafe {
+            // It does not matter if len is zero because
+            // Xlib allocates one zeroed extra byte in every property returned.
+            xlib::XFree(self.data_ptr as *mut c_void);
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Property {
+    Char(PropertyHandle<u8>),
+    Short(PropertyHandle<u16>),
+    Long(PropertyHandle<u32>),
+}
+
+pub trait WindowProperties: Window {
+    /// Returns property's all data.
+    ///
+    /// ### Arguments
+    ///
+    /// ### Panics
+    /// If `property_length` is negative
+    fn get_property(
+        &self,
+        property_name: Atom,
+        is_deleted: bool,
+        property_type: PropertyType,
+    ) -> Result<Property, PropertyError> {
+        let mut actual_type_return = 0;
+        let mut actual_format_return = 0;
+        let mut nitems_return = 0;
+        let mut bytes_after_return: c_ulong = 0;
+        let mut prop_return = ptr::null_mut();
+
+        let result = unsafe {
+            xlib::XGetWindowProperty(
+                self.raw_display(),
+                self.window_id(),
+                property_name.atom_id(),
+                0, // data offset
+
+                // We want all data so lets use value (c_long::max_value() / 4)
+                // as argument because xlib uses long_length argument like this
+                // L = MINIMUM(T, 4 * long_length)
+                (c_long::max_value() / 4),
+
+                to_xlib_bool(is_deleted),
+                property_type.to_xlib_property_function_parameter(),
+                &mut actual_type_return,
+                &mut actual_format_return,
+                &mut nitems_return,
+                &mut bytes_after_return,
+                &mut prop_return
+            )
+        };
+
+        if result != xlib::Success as c_int {
+            return Err(PropertyError::FunctionFailed)
+        }
+
+        if prop_return.is_null() {
+            return Err(PropertyError::PropertyDataHandleNull)
+        }
+
+        // TODO: check that c_ulong can fit in usize
+        // TODO: Check that actual_type_return is valid atom or trust Xlib?
+
+        if actual_type_return == XLIB_NONE {
+            // property does not exist
+
+            // free the xlib one extra byte
+            PropertyHandle::new(prop_return, 0, Atom::from_raw(0));
+
+            return Err(PropertyError::DoesNotExist);
+        }
+
+        match property_type {
+            PropertyType::Atom(atom) if atom.atom_id() != actual_type_return => {
+                // wrong type
+
+                let property_handle: PropertyHandle<u8> = PropertyHandle::new(prop_return, bytes_after_return as usize, Atom::from_raw(actual_type_return));
+
+                let data_format = match actual_format_return {
+                    8 => PropertyDataFormat::Char,
+                    16 => PropertyDataFormat::Short,
+                    32 => PropertyDataFormat::Long,
+                    format => {
+                        return Err(PropertyError::UnknownDataFormat(format))
+                    }
+                };
+
+                Err(PropertyError::WrongType(property_handle, data_format))
+            },
+            PropertyType::Atom(_) | PropertyType::AnyPropertyType => {
+                // successful property request
+
+                let property_type_atom = Atom::from_raw(actual_type_return);
+                let property_data = match actual_format_return {
+                    8 => Property::Char(PropertyHandle::new(prop_return, nitems_return as usize, property_type_atom)),
+                    16 => Property::Short(PropertyHandle::new(prop_return as *const u16, nitems_return as usize, property_type_atom)),
+                    32 => Property::Long(PropertyHandle::new(prop_return as *const u32, nitems_return as usize, property_type_atom)),
+                    format => {
+                        return Err(PropertyError::UnknownDataFormat(format));
+                    }
+                };
+
+                Ok(property_data)
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum PropertyError {
+    DoesNotExist,
+    /// Property's real type did not match, but here is property's data in bytes.
+    WrongType(PropertyHandle<u8>, PropertyDataFormat),
+    /// Xlib function call failed.
+    FunctionFailed,
+    /// Xlib did not allocate data for property.
+    PropertyDataHandleNull,
+    UnknownDataFormat(c_int),
+}
+
+
+#[derive(Debug, Clone, Copy)]
+pub enum PropertyDataFormat {
+    /// 8 bits
+    Char,
+    /// 16 bits
+    Short,
+    /// 32 bits
+    Long,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum PropertyType {
+    Atom(Atom),
+    AnyPropertyType,
+}
+
+impl PropertyType {
+    fn to_xlib_property_function_parameter(self) -> xlib::Atom {
+        match self {
+            PropertyType::Atom(atom) => atom.atom_id(),
+            PropertyType::AnyPropertyType => xlib::AnyPropertyType as xlib::Atom,
+        }
+    }
+}
+
+pub(crate) fn to_xlib_bool(value: bool) -> xlib::Bool {
+    if value {
+        xlib::True
+    } else {
+        xlib::False
+    }
 }

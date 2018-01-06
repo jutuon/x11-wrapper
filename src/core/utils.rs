@@ -167,6 +167,13 @@ impl Atom {
     pub fn atom_id(&self) -> xlib::Atom {
         self.atom_id
     }
+
+    /// This does not check if atom id is zero
+    pub(crate) fn from_raw(atom_id: xlib::Atom) -> Atom {
+        Self {
+            atom_id
+        }
+    }
 }
 
 /// Max list length is `std::i16::MAX`.
