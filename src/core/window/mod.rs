@@ -4,7 +4,6 @@ pub mod input;
 pub mod input_output;
 pub mod attribute;
 
-use std::marker::PhantomData;
 use std::os::raw::{c_uint, c_int, c_long, c_void, c_ulong};
 use std::mem;
 use std::slice;
@@ -132,32 +131,66 @@ pub enum StackMode {
 }
 
 #[derive(Debug)]
-pub struct PropertyHandle<T> {
+pub struct PropertyData<T> {
     property_type: Atom,
-    data_ptr: *const T,
-    len: usize,
-    _marker: PhantomData<T>,
+    data: Vec<T>,
 }
 
-impl <T> PropertyHandle<T> {
-    /// Panics if data is null.
-    fn new(data_ptr: *const T, len: usize, property_type: Atom) -> Self {
-        if data_ptr.is_null() {
-            panic!("data is null");
-        }
-
+impl PropertyData<u8> {
+    pub fn from_data(data: &[u8], property_type: Atom) -> Self {
         Self {
             property_type,
-            data_ptr,
-            len,
-            _marker: PhantomData
+            data: data.to_vec(),
         }
     }
 
-    pub fn data<'a>(&'a self) -> &'a [T] {
-        unsafe {
-            slice::from_raw_parts(self.data_ptr, self.len)
+    pub fn new(property_type: Atom) -> Self {
+        Self {
+            property_type,
+            data: vec![],
         }
+    }
+}
+
+impl PropertyData<u16> {
+    pub fn from_data(data: &[u16], property_type: Atom) -> Self {
+        Self {
+            property_type,
+            data: data.to_vec(),
+        }
+    }
+
+    pub fn new(property_type: Atom) -> Self {
+        Self {
+            property_type,
+            data: vec![],
+        }
+    }
+}
+
+impl PropertyData<u32> {
+    pub fn from_data(data: &[u32], property_type: Atom) -> Self {
+        Self {
+            property_type,
+            data: data.to_vec(),
+        }
+    }
+
+    pub fn new(property_type: Atom) -> Self {
+        Self {
+            property_type,
+            data: vec![],
+        }
+    }
+}
+
+impl <T> PropertyData<T> {
+    pub fn data(&self) -> &Vec<T> {
+        &self.data
+    }
+
+    pub fn data_mut(&mut self) -> &mut Vec<T> {
+        &mut self.data
     }
 
     pub fn property_type(&self) -> Atom {
@@ -165,35 +198,23 @@ impl <T> PropertyHandle<T> {
     }
 }
 
-impl <T> Drop for PropertyHandle<T> {
-    fn drop(&mut self) {
-        unsafe {
-            // It does not matter if len is zero because
-            // Xlib allocates one zeroed extra byte in every property returned.
-            xlib::XFree(self.data_ptr as *mut c_void);
-        }
-    }
-}
-
 #[derive(Debug)]
 pub enum Property {
-    Char(PropertyHandle<u8>),
-    Short(PropertyHandle<u16>),
-    Long(PropertyHandle<u32>),
+    Char(PropertyData<u8>),
+    Short(PropertyData<u16>),
+    Long(PropertyData<u32>),
 }
 
 pub trait WindowProperties: Window {
     /// Returns property's all data.
     ///
     /// ### Arguments
-    ///
-    /// ### Panics
-    /// If `property_length` is negative
+    /// `is_deleted` - If true, the specified property will be deleted if there is no errors.
     fn get_property(
         &self,
         property_name: Atom,
-        is_deleted: bool,
         property_type: PropertyType,
+        is_deleted: bool,
     ) -> Result<Property, PropertyError> {
         let mut actual_type_return = 0;
         let mut actual_format_return = 0;
@@ -238,16 +259,22 @@ pub trait WindowProperties: Window {
             // property does not exist
 
             // free the xlib one extra byte
-            PropertyHandle::new(prop_return, 0, Atom::from_raw(0));
+            unsafe {
+                xlib::XFree(prop_return as *mut c_void);
+            }
 
             return Err(PropertyError::DoesNotExist);
         }
 
-        match property_type {
+        let result = match property_type {
             PropertyType::Atom(atom) if atom.atom_id() != actual_type_return => {
                 // wrong type
 
-                let property_handle: PropertyHandle<u8> = PropertyHandle::new(prop_return, bytes_after_return as usize, Atom::from_raw(actual_type_return));
+                let data: &[u8] = unsafe {
+                    slice::from_raw_parts(prop_return, bytes_after_return as usize)
+                };
+
+                let property_data = PropertyData::<u8>::from_data(data, Atom::from_raw(actual_type_return));
 
                 let data_format = match actual_format_return {
                     8 => PropertyDataFormat::Char,
@@ -258,16 +285,34 @@ pub trait WindowProperties: Window {
                     }
                 };
 
-                Err(PropertyError::WrongType(property_handle, data_format))
+                Err(PropertyError::WrongType(property_data, data_format))
             },
             PropertyType::Atom(_) | PropertyType::AnyPropertyType => {
                 // successful property request
 
                 let property_type_atom = Atom::from_raw(actual_type_return);
                 let property_data = match actual_format_return {
-                    8 => Property::Char(PropertyHandle::new(prop_return, nitems_return as usize, property_type_atom)),
-                    16 => Property::Short(PropertyHandle::new(prop_return as *const u16, nitems_return as usize, property_type_atom)),
-                    32 => Property::Long(PropertyHandle::new(prop_return as *const u32, nitems_return as usize, property_type_atom)),
+                    8 => {
+                        let data: &[u8] = unsafe {
+                            slice::from_raw_parts(prop_return, nitems_return as usize)
+                        };
+
+                        Property::Char(PropertyData::<u8>::from_data(data, property_type_atom))
+                    }
+                    16 => {
+                        let data: &[u16] = unsafe {
+                            slice::from_raw_parts(prop_return as *const u16, nitems_return as usize)
+                        };
+
+                        Property::Short(PropertyData::<u16>::from_data(data, property_type_atom))
+                    }
+                    32 => {
+                        let data: &[u32] = unsafe {
+                            slice::from_raw_parts(prop_return as *const u32, nitems_return as usize)
+                        };
+
+                        Property::Long(PropertyData::<u32>::from_data(data, property_type_atom))
+                    }
                     format => {
                         return Err(PropertyError::UnknownDataFormat(format));
                     }
@@ -275,7 +320,13 @@ pub trait WindowProperties: Window {
 
                 Ok(property_data)
             }
+        };
+
+        unsafe {
+            xlib::XFree(prop_return as *mut c_void);
         }
+
+        result
     }
 
     fn list_properties(&self) -> AtomList {
@@ -321,13 +372,25 @@ pub trait WindowProperties: Window {
             xlib::XDeleteProperty(self.raw_display(), self.window_id(), property_name.atom_id());
         }
     }
+/*
+    fn change_property(
+        &self,
+        property_name: Atom,
+        property_type: Atom,
+        property_data_format: PropertyDataFormat,
+        mode: ChangePropertyMode,
+    ) {
+
+    }
+
+    */
 }
 
 #[derive(Debug)]
 pub enum PropertyError {
     DoesNotExist,
     /// Property's real type did not match, but here is property's data in bytes.
-    WrongType(PropertyHandle<u8>, PropertyDataFormat),
+    WrongType(PropertyData<u8>, PropertyDataFormat),
     /// Xlib function call failed.
     FunctionFailed,
     /// Xlib did not allocate data for property.
@@ -344,6 +407,23 @@ pub enum PropertyDataFormat {
     Short,
     /// 32 bits
     Long,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ChangePropertyMode {
+    Replace,
+    Prepend,
+    Append,
+}
+
+impl ChangePropertyMode {
+    fn to_xlib_function_parameter(self) -> c_int {
+        match self {
+            ChangePropertyMode::Replace => xlib::PropModeReplace,
+            ChangePropertyMode::Prepend => xlib::PropModePrepend,
+            ChangePropertyMode::Append => xlib::PropModeAppend,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
