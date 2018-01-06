@@ -59,7 +59,7 @@ impl TopLevelInputOutputWindow {
                 self.raw_display(),
                 self.window_id(),
                 atom_list.as_mut_ptr(),
-                atom_list.len() as c_int,
+                atom_list.len(),
             )
         };
 

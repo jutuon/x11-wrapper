@@ -14,7 +14,7 @@ use x11::xlib;
 
 use self::input_output::TopLevelInputOutputWindow;
 use core::screen::Screen;
-use core::utils::{Atom, XLIB_NONE};
+use core::utils::{Atom, XLIB_NONE, AtomList};
 
 /// A non root window
 pub trait Window {
@@ -275,6 +275,50 @@ pub trait WindowProperties: Window {
 
                 Ok(property_data)
             }
+        }
+    }
+
+    fn list_properties(&self) -> AtomList {
+        let mut atom_list = AtomList::new();
+
+        let mut num_prop = 0;
+
+        let xlib_atom_list: *mut xlib::Atom = unsafe {
+            xlib::XListProperties(self.raw_display(), self.window_id(), &mut num_prop)
+        };
+
+        if xlib_atom_list.is_null() {
+            return atom_list;
+        }
+
+        if num_prop < 0 {
+            eprintln!("x11_wrapper warning: property count is negative, returning empty AtomList");
+            return atom_list;
+        }
+
+        // TODO: Check that c_int fits in usize.
+        // TODO: Check that atom in atom_slice is valid atom or trust Xlib?
+
+        let atom_slice: &[xlib::Atom] = unsafe {
+            slice::from_raw_parts(xlib_atom_list, num_prop as usize)
+        };
+
+        for atom in atom_slice {
+            atom_list.add(Atom::from_raw(*atom));
+        }
+
+        drop(atom_slice);
+
+        unsafe {
+            xlib::XFree(xlib_atom_list as *mut c_void);
+        }
+
+        atom_list
+    }
+
+    fn delete_property(&self, property_name: Atom) {
+        unsafe {
+            xlib::XDeleteProperty(self.raw_display(), self.window_id(), property_name.atom_id());
         }
     }
 }

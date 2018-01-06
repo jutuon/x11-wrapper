@@ -176,7 +176,11 @@ impl Atom {
     }
 }
 
-/// Max list length is `std::i16::MAX`.
+/// Max list length is `std::os::raw::c_int::max_value()`.
+///
+/// In C language, minimum requirement for int type is 16 bits, so
+/// if atom count will be equal or less than `i16::max_value()` you
+/// don't have to worry about panics from `add` method.
 pub struct AtomList(Vec<xlib::Atom>);
 
 impl AtomList {
@@ -184,17 +188,18 @@ impl AtomList {
         AtomList(Vec::new())
     }
 
-    /// Panics if list length is `std::i16::MAX`.
+    /// Panics if list length is `std::os::raw::c_int::max_value()`.
     pub fn add(&mut self, atom: Atom) {
-        if self.len() == i16::max_value() {
+        if self.len() == c_int::max_value() {
             panic!("Error: AtomList is full.");
         }
 
         self.0.push(atom.atom_id())
     }
 
-    pub fn len(&self) -> i16 {
-        self.0.len() as i16
+    /// This method returns values in range [0; c_int::max_value()]
+    pub fn len(&self) -> c_int {
+        self.0.len() as c_int
     }
 
     pub(crate) fn as_mut_ptr(&mut self) -> *mut xlib::Atom {
