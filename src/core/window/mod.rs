@@ -4,7 +4,7 @@ pub mod input;
 pub mod input_output;
 pub mod attribute;
 
-use std::os::raw::{c_uint, c_int, c_long, c_void, c_ulong};
+use std::os::raw::{c_uint, c_int, c_long, c_void, c_ulong, c_uchar};
 use std::mem;
 use std::slice;
 use std::ptr;
@@ -196,6 +196,10 @@ impl <T> PropertyData<T> {
     pub fn property_type(&self) -> Atom {
         self.property_type
     }
+
+    fn as_mut_ptr(&mut self) -> *mut T {
+        self.data.as_mut_slice().as_mut_ptr()
+    }
 }
 
 #[derive(Debug)]
@@ -203,6 +207,49 @@ pub enum Property {
     Char(PropertyData<u8>),
     Short(PropertyData<u16>),
     Long(PropertyData<u32>),
+}
+
+impl Property {
+    fn to_xlib_change_property_format(&self) -> c_int {
+        match self {
+            &Property::Char(_) => 8,
+            &Property::Short(_) => 16,
+            &Property::Long(_) => 32,
+        }
+    }
+
+    fn to_xlib_change_property_data(&mut self) -> *mut c_uchar {
+        match self {
+            &mut Property::Char(ref mut data) => data.as_mut_ptr(),
+            &mut Property::Short(ref mut data) => data.as_mut_ptr() as *mut c_uchar,
+            &mut Property::Long(ref mut data) => data.as_mut_ptr() as *mut c_uchar,
+        }
+    }
+
+    /// Returns error if property data length is out of c_int range.
+    fn to_xlib_change_property_nelements(&self) -> Result<c_int, ()> {
+        let len = match self {
+            &Property::Char(ref data) => data.data().len(),
+            &Property::Short(ref data) => data.data().len(),
+            &Property::Long(ref data) => data.data().len(),
+        };
+
+        // TODO: check that c_int fits in usize
+
+        if len <= c_int::max_value() as usize {
+            Ok(len as c_int)
+        } else {
+            Err(())
+        }
+    }
+
+    pub fn property_type(&self) -> Atom {
+        match self {
+            &Property::Char(ref data) => data.property_type(),
+            &Property::Short(ref data) => data.property_type(),
+            &Property::Long(ref data) => data.property_type(),
+        }
+    }
 }
 
 pub trait WindowProperties: Window {
@@ -372,18 +419,38 @@ pub trait WindowProperties: Window {
             xlib::XDeleteProperty(self.raw_display(), self.window_id(), property_name.atom_id());
         }
     }
-/*
+
+    /// Changes property value.
+    ///
+    /// Returns error if property data length is larger than c_int.
+    ///
+    /// From Xlib documentation:
+    /// "The maximum size of a property is server dependent
+    /// and can vary dynamically depending on the amount of
+    /// memory the server has available. (If there is insufficient
+    /// space, a BadAlloc error results.) "
     fn change_property(
         &self,
         property_name: Atom,
-        property_type: Atom,
-        property_data_format: PropertyDataFormat,
+        mut property: Property,
         mode: ChangePropertyMode,
-    ) {
+    ) -> Result<(), ()> {
 
+        unsafe {
+            xlib::XChangeProperty(
+                self.raw_display(),
+                self.window_id(),
+                property_name.atom_id(),
+                property.property_type().atom_id(),
+                property.to_xlib_change_property_format(),
+                mode.to_xlib_function_parameter(),
+                property.to_xlib_change_property_data(),
+                property.to_xlib_change_property_nelements()?
+            );
+        }
+
+        Ok(())
     }
-
-    */
 }
 
 #[derive(Debug)]
