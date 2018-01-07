@@ -13,7 +13,7 @@ use x11::xlib;
 
 use self::input_output::TopLevelInputOutputWindow;
 use core::screen::Screen;
-use core::utils::{Atom, XLIB_NONE, AtomList, Text, TextError};
+use core::utils::{Atom, XLIB_NONE, AtomList, Text, TextError, to_xlib_bool};
 
 /// A non root window
 pub trait Window {
@@ -553,15 +553,6 @@ impl PropertyType {
         }
     }
 }
-
-pub(crate) fn to_xlib_bool(value: bool) -> xlib::Bool {
-    if value {
-        xlib::True
-    } else {
-        xlib::False
-    }
-}
-
 
 pub trait Selection: Window {
     /// Set this window to be selection owner. Sets last-change time to current time.

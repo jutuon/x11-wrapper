@@ -295,3 +295,11 @@ impl AtomList {
         self.0.as_mut_slice().as_mut_ptr()
     }
 }
+
+pub(crate) fn to_xlib_bool(value: bool) -> xlib::Bool {
+    if value {
+        xlib::True
+    } else {
+        xlib::False
+    }
+}

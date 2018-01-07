@@ -1,41 +1,16 @@
 
 //! Inter-Client Communication Conventions Manual 2.0 properties
 
-use std::os::raw::{c_int, c_void};
+use std::os::raw::{c_int, c_void, c_long};
 use std::marker::PhantomData;
 
 use x11::xlib;
 
 use core::window::input_output::TopLevelInputOutputWindow;
 use core::window::Window;
-use core::utils::{Text, AtomList};
+use core::utils::{AtomList, Atom, to_xlib_bool};
 
 impl TopLevelInputOutputWindow {
-    /// Set `WM_NAME` property.
-    pub fn set_window_name(self, mut text: Text) -> Self {
-        unsafe {
-            xlib::XSetWMName(
-                self.raw_display(),
-                self.window_id(),
-                text.raw_text_property(),
-            );
-        }
-        self
-    }
-
-    /// Set `WM_ICON_NAME` property.
-    pub fn set_window_icon_name(self, mut text: Text) -> Self {
-        unsafe {
-            xlib::XSetWMIconName(
-                self.raw_display(),
-                self.window_id(),
-                text.raw_text_property(),
-            );
-        }
-
-        self
-    }
-
     /// Set `WM_HINTS` property.
     ///
     /// Returns error if there is no enough memory to
@@ -71,6 +46,31 @@ impl TopLevelInputOutputWindow {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+pub enum TextProperty {
+    /// `WM_NAME`
+    Name,
+
+    /// `WM_ICON_NAME`
+    IconName,
+
+    /// `WM_COMMAND`
+    Command,
+
+    /// `WM_CLIENT_MACHINE`
+    ClientMachine,
+}
+
+impl From<TextProperty> for Atom {
+    fn from(property: TextProperty) -> Self {
+        match property {
+            TextProperty::ClientMachine => Atom::from_raw(xlib::XA_WM_CLIENT_MACHINE),
+            TextProperty::IconName => Atom::from_raw(xlib::XA_WM_ICON_NAME),
+            TextProperty::Command => Atom::from_raw(xlib::XA_WM_COMMAND),
+            TextProperty::Name => Atom::from_raw(xlib::XA_WM_NAME),
+        }
+    }
+}
 
 /// Allocated `xlib::XWMHints` structure.
 struct Hints {
@@ -107,10 +107,32 @@ impl Drop for Hints {
     }
 }
 
+bitflags! {
+    struct WindowHintsFlags: c_long {
+        const INPUT = xlib::InputHint;
+        const STATE = xlib::StateHint;
+        const ICON_PIXMAP = xlib::IconPixmapHint;
+        const ICON_WINDOW = xlib::IconWindowHint;
+        const ICON_POSITION = xlib::IconPositionHint;
+        const ICON_MASK = xlib::IconMaskHint;
+        const WINDOW_GROUP = xlib::WindowGroupHint;
+        const URGENCY = xlib::XUrgencyHint;
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+#[repr(u8)]
+pub enum WindowState {
+    Withdrawn = 0,
+    Normal = 1,
+    Iconic = 2,
+}
+
 /// Sets `TopLevelInputOutputWindow`'s `WM_HINTS` property.
 pub struct HintsConfigurator {
     window: TopLevelInputOutputWindow,
     hints: Hints,
+    window_hints_flags: WindowHintsFlags,
 }
 
 impl HintsConfigurator {
@@ -122,11 +144,95 @@ impl HintsConfigurator {
             Err(()) => return Err(window),
         };
 
-        Ok(Self { window, hints })
+        Ok(
+            Self {
+                window,
+                hints,
+                window_hints_flags: WindowHintsFlags::empty(),
+            }
+        )
+    }
+
+    pub fn set_input(mut self, value: bool) -> Self {
+        let xlib_bool = to_xlib_bool(value);
+        unsafe {
+            (*self.hints.wm_hints_ptr).input = xlib_bool;
+        }
+        self.window_hints_flags |= WindowHintsFlags::INPUT;
+        self
+    }
+
+    pub fn set_initial_state(mut self, value: WindowState) -> Self {
+        unsafe {
+            (*self.hints.wm_hints_ptr).initial_state = value as c_int;
+        }
+        self.window_hints_flags |= WindowHintsFlags::STATE;
+
+        self
+    }
+
+    pub fn set_icon_pixmap(mut self, pixmap_id: xlib::Pixmap) -> Self {
+        unsafe {
+            (*self.hints.wm_hints_ptr).icon_pixmap = pixmap_id;
+        }
+        self.window_hints_flags |= WindowHintsFlags::ICON_PIXMAP;
+
+        self
+    }
+
+
+    pub fn set_icon_window(mut self, window_id: xlib::Window) -> Self {
+        unsafe {
+            (*self.hints.wm_hints_ptr).icon_window = window_id;
+        }
+        self.window_hints_flags |= WindowHintsFlags::ICON_WINDOW;
+
+        self
+    }
+
+
+    pub fn set_icon_position(mut self, x: c_int, y: c_int) -> Self {
+        unsafe {
+            (*self.hints.wm_hints_ptr).icon_x = x;
+            (*self.hints.wm_hints_ptr).icon_y = y;
+        }
+        self.window_hints_flags |= WindowHintsFlags::ICON_POSITION;
+
+        self
+    }
+
+    pub fn set_icon_mask(mut self, pixmap_id: xlib::Pixmap) -> Self {
+        unsafe {
+            (*self.hints.wm_hints_ptr).icon_mask = pixmap_id;
+        }
+        self.window_hints_flags |= WindowHintsFlags::ICON_MASK;
+
+        self
+    }
+
+    pub fn set_window_group(mut self, window_group_id: xlib::XID) -> Self {
+        unsafe {
+            (*self.hints.wm_hints_ptr).window_group = window_group_id;
+        }
+        self.window_hints_flags |= WindowHintsFlags::WINDOW_GROUP;
+
+        self
+    }
+
+    pub fn set_urgency(mut self, value: bool) -> Self {
+        if value {
+            self.window_hints_flags |= WindowHintsFlags::URGENCY;
+        } else {
+            self.window_hints_flags -= WindowHintsFlags::URGENCY;
+        }
+
+        self
     }
 
     pub fn end(mut self) -> TopLevelInputOutputWindow {
         unsafe {
+             (*self.hints.wm_hints_ptr).flags = self.window_hints_flags.bits();
+
             xlib::XSetWMHints(
                 self.window.raw_display(),
                 self.window.window_id(),
@@ -206,6 +312,55 @@ impl NormalHintsConfigurator {
             (*self.size_hints.as_mut_ptr()).flags |= xlib::PMinSize;
             (*self.size_hints.as_mut_ptr()).min_width = width;
             (*self.size_hints.as_mut_ptr()).min_height = height;
+        }
+
+        self
+    }
+
+    pub fn set_resize_increments(mut self, width: c_int, height: c_int) -> Self {
+        unsafe {
+            (*self.size_hints.as_mut_ptr()).flags |= xlib::PResizeInc;
+            (*self.size_hints.as_mut_ptr()).width_inc = width;
+            (*self.size_hints.as_mut_ptr()).height_inc = height;
+        }
+
+        self
+    }
+
+    pub fn set_min_and_max_aspect_ratios(
+        mut self,
+        min_numerator: c_int,
+        min_denominator: c_int,
+        max_numerator: c_int,
+        max_denominator: c_int,
+    ) -> Self {
+        unsafe {
+            (*self.size_hints.as_mut_ptr()).flags |= xlib::PAspect;
+
+            (*self.size_hints.as_mut_ptr()).min_aspect.x = min_numerator;
+            (*self.size_hints.as_mut_ptr()).min_aspect.y = min_denominator;
+
+            (*self.size_hints.as_mut_ptr()).max_aspect.x = max_numerator;
+            (*self.size_hints.as_mut_ptr()).max_aspect.y = max_denominator;
+        }
+
+        self
+    }
+
+    pub fn set_base_size(mut self, width: c_int, height: c_int) -> Self {
+        unsafe {
+            (*self.size_hints.as_mut_ptr()).flags |= xlib::PBaseSize;
+            (*self.size_hints.as_mut_ptr()).base_width = width;
+            (*self.size_hints.as_mut_ptr()).base_height = height;
+        }
+
+        self
+    }
+
+    pub fn set_win_gravity(mut self, win_gravity: c_int) -> Self {
+        unsafe {
+            (*self.size_hints.as_mut_ptr()).flags |= xlib::PWinGravity;
+            (*self.size_hints.as_mut_ptr()).win_gravity = win_gravity;
         }
 
         self
