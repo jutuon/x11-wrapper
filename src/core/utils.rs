@@ -1,6 +1,8 @@
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int, c_void};
 use std::mem;
+use std::ptr;
+use std::slice;
 
 use x11::xlib;
 
@@ -15,19 +17,26 @@ pub struct Text {
 }
 
 #[derive(Debug)]
-pub enum TextError {
+pub enum TextError<T> {
     NoMemory,
     LocaleNotSupported,
     /// There was internal Null byte in the string.
     NulError,
-    /// Count of unconverted characters and Text with unconverted characters
+    /// Count of unconverted characters and text with unconverted characters
     /// replaced with default characters.
-    UnconvertedCharacters(c_int, Text),
+    UnconvertedCharacters(c_int, T),
+    ConverterNotFound,
+    XlibReturnedNullPointer,
+    XlibReturnedNegativeTextCount,
     UnknownError,
 }
 
+const X_NO_MEMORY: c_int = -1;
+const X_LOCALE_NOT_SUPPORTED: c_int = -2;
+const X_CONVERTER_NOT_FOUND: c_int = -3;
+
 impl Text {
-    pub fn new(display: &Display, text: String) -> Result<Self, TextError> {
+    pub fn new(display: &Display, text: String) -> Result<Self, TextError<Self>> {
         let c_string = CString::new(text).map_err(|_| TextError::NulError)?;
 
         let mut one_text = c_string.as_ptr() as *mut c_char;
@@ -46,12 +55,10 @@ impl Text {
 
         match status {
             0 => Ok(Self { text_property }),
-            -1 => {
-                // XNoMemory
+            X_NO_MEMORY => { // -1
                 Err(TextError::NoMemory)
             }
-            -2 => {
-                // XLocaleNotSupported
+            X_LOCALE_NOT_SUPPORTED => { // -2
                 Err(TextError::LocaleNotSupported)
             }
             value if value < -2 => {
@@ -67,6 +74,81 @@ impl Text {
 
     pub fn raw_text_property(&mut self) -> *mut xlib::XTextProperty {
         &mut self.text_property
+    }
+
+
+    /// Converts CString to String with method `to_string_lossy`.
+    pub fn to_string_list(&mut self, display: &Display) -> Result<Vec<String>, TextError<Vec<String>>> {
+        let mut text_list: *mut *mut c_char = ptr::null_mut();
+
+        let mut text_count = 0;
+
+        let result = unsafe {
+            xlib::Xutf8TextPropertyToTextList(
+                display.raw_display(),
+                &mut self.text_property,
+                &mut text_list,
+                &mut text_count,
+            )
+        };
+
+        match result {
+            X_NO_MEMORY => { // -1
+                return Err(TextError::NoMemory)
+            }
+            X_LOCALE_NOT_SUPPORTED => { // -2
+                return Err(TextError::LocaleNotSupported)
+            }
+            X_CONVERTER_NOT_FOUND => { // -3
+                return Err(TextError::ConverterNotFound)
+            }
+            value if value < -3 => {
+                // TODO: possible memory leak?
+                return Err(TextError::UnknownError)
+            }
+            _ => ()
+        }
+
+        if text_list.is_null() {
+            return Err(TextError::XlibReturnedNullPointer)
+        }
+
+        if text_count < 0 {
+            unsafe {
+                xlib::XFreeStringList(text_list)
+            }
+
+            return Err(TextError::XlibReturnedNegativeTextCount)
+        }
+
+
+        let texts: &[*mut c_char] = unsafe {
+            // TODO: check that c_int fits in usize
+            slice::from_raw_parts(text_list, text_count as usize)
+        };
+
+        let mut string_vec = vec![];
+
+        for text_ptr in texts {
+            let c_string = unsafe {
+                CString::from_raw(*text_ptr)
+            };
+
+            string_vec.push(c_string.to_string_lossy().to_string());
+        }
+
+
+        let final_result = if result == 0 {
+            Ok(string_vec)
+        } else {
+            Err(TextError::UnconvertedCharacters(result, string_vec))
+        };
+
+        unsafe {
+            xlib::XFreeStringList(text_list);
+        }
+
+        final_result
     }
 }
 
