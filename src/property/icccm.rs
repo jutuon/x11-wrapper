@@ -44,6 +44,15 @@ impl TopLevelInputOutputWindow {
             Ok(self)
         }
     }
+
+    /// Set `WM_TRANSIENT_FOR` property.
+    pub fn set_transient_for_hint(self, window_id: xlib::Window) -> Self {
+        unsafe {
+            xlib::XSetTransientForHint(self.raw_display(), self.window_id(), window_id);
+        }
+
+        self
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
