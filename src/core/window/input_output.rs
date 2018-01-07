@@ -6,7 +6,7 @@ use std::sync::Arc;
 use x11::xlib;
 
 use super::attribute::*;
-use super::Window;
+use super::{Window, WindowProperties, Selection};
 
 use core::display::{DisplayHandle};
 use core::color::{ColormapID, CreatedColormap};
@@ -232,6 +232,10 @@ impl Drop for TopLevelInputOutputWindow {
     }
 }
 
+impl WindowProperties for TopLevelInputOutputWindow {}
+impl Selection for TopLevelInputOutputWindow {}
+
+/*
 impl GetAndSetAttributes for TopLevelInputOutputWindow {
     fn attributes(&self) -> &WindowAttributes {
         &self.attributes
@@ -246,6 +250,7 @@ impl_traits!(
     InputOutputWindowAttributes,
     CommonAttributes
 );
+*/
 
 impl Window for TopLevelInputOutputWindow {
     fn raw_display(&self) -> *mut xlib::Display {
