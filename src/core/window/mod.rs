@@ -13,7 +13,7 @@ use x11::xlib;
 
 use self::input_output::TopLevelInputOutputWindow;
 use core::screen::Screen;
-use core::utils::{Atom, XLIB_NONE, AtomList};
+use core::utils::{Atom, XLIB_NONE, AtomList, Text, TextError};
 
 /// A non root window
 pub trait Window {
@@ -451,6 +451,52 @@ pub trait WindowProperties: Window {
 
         Ok(())
     }
+
+    /// Set properties with type `TEXT`.
+    fn set_text_property<T: Into<Atom>>(&self, mut text: Text, property: T) {
+        unsafe {
+            xlib::XSetTextProperty(
+                self.raw_display(),
+                self.window_id(),
+                text.raw_text_property(),
+                property.into().atom_id()
+            );
+        }
+    }
+
+    /// Get properties with type `TEXT`.
+    fn get_text_property<T: Into<Atom>>(&self, property: T) -> Result<Vec<String>, TextPropertyError> {
+        let mut text_property = unsafe {
+            mem::zeroed()
+        };
+
+        let status = unsafe {
+            xlib::XGetTextProperty(
+                self.raw_display(),
+                self.window_id(),
+                &mut text_property,
+                property.into().atom_id()
+            )
+        };
+
+        if status == 0 {
+            return Err(TextPropertyError::XlibFunctionFailed)
+        }
+
+        if text_property.value.is_null() {
+            return Err(TextPropertyError::DoesNotExist)
+        }
+
+        Text::xlib_text_property_to_string_list(text_property, self.raw_display())
+            .map_err(|e| TextPropertyError::TextError(e))
+    }
+}
+
+#[derive(Debug)]
+pub enum TextPropertyError {
+    DoesNotExist,
+    TextError(TextError<Vec<String>>),
+    XlibFunctionFailed,
 }
 
 #[derive(Debug)]

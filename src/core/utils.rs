@@ -79,14 +79,21 @@ impl Text {
 
     /// Converts CString to String with method `to_string_lossy`.
     pub fn to_string_list(&mut self, display: &Display) -> Result<Vec<String>, TextError<Vec<String>>> {
+        Self::xlib_text_property_to_string_list(self.text_property, display.raw_display())
+    }
+
+    pub(crate) fn xlib_text_property_to_string_list(
+        mut text_property: xlib::XTextProperty,
+        raw_display: *mut xlib::Display
+    ) -> Result<Vec<String>, TextError<Vec<String>>> {
         let mut text_list: *mut *mut c_char = ptr::null_mut();
 
         let mut text_count = 0;
 
         let result = unsafe {
             xlib::Xutf8TextPropertyToTextList(
-                display.raw_display(),
-                &mut self.text_property,
+                raw_display,
+                &mut text_property,
                 &mut text_list,
                 &mut text_count,
             )
