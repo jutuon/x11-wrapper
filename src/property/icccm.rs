@@ -3,11 +3,12 @@
 
 use std::os::raw::{c_int, c_void, c_long};
 use std::marker::PhantomData;
+use std::ffi::CString;
 
 use x11::xlib;
 
 use core::window::input_output::TopLevelInputOutputWindow;
-use core::window::Window;
+use core::window::{Window, WindowProperties, PropertyData, Property, ChangePropertyMode};
 use core::utils::{AtomList, Atom, to_xlib_bool};
 
 impl TopLevelInputOutputWindow {
@@ -53,6 +54,61 @@ impl TopLevelInputOutputWindow {
 
         self
     }
+
+    /// Set `WM_CLASS` property.
+    ///
+    /// Allowed characters [a-zA-Z0-9 _-]
+    ///
+    /// TODO: support all STRING type characters without control characters
+    ///
+    /// Note that `instance_name` and `class_name` arguments' length is limited
+    /// by property data size constraints. See documentation of
+    /// `WindowProperty::change_property` for more information.
+    pub fn set_class(self, instance_name: String, class_name: String) -> Result<Self, SetClassPropertyError<Self>> {
+
+        fn check_string(text: &str) -> Result<(),()> {
+            for c in text.chars() {
+                match c {
+                     'a'...'z' | 'A'...'Z' | '0'...'9' |
+                     ' ' | '-' | '_' => (),
+                    _ => return Err(()),
+                }
+            }
+            Ok(())
+        }
+
+        if check_string(&instance_name).is_err() ||
+            check_string(&class_name).is_err() {
+                return Err(SetClassPropertyError::UnknownCharacter(self))
+        }
+
+        // There shouldn't be any null bytes because
+        // check_string does not allow them.
+        let c_instance_name = CString::new(instance_name).unwrap();
+        let c_class_name = CString::new(class_name).unwrap();
+
+        let mut property_data = PropertyData::<u8>::new(
+            Atom::from_raw(xlib::XA_WM_CLASS),
+            Atom::from_raw(xlib::XA_STRING),
+        );
+
+        property_data.data_mut().extend_from_slice(c_instance_name.as_bytes_with_nul());
+        property_data.data_mut().extend_from_slice(c_class_name.as_bytes_with_nul());
+
+        let property = Property::Char(property_data);
+
+        match self.change_property(property, ChangePropertyMode::Replace) {
+            Ok(()) => Ok(self),
+            Err(()) => Err(SetClassPropertyError::ChangePropertyError(self)),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum SetClassPropertyError<T> {
+    UnknownCharacter(T),
+    /// See documentation for `WindowProperty::change_property`.
+    ChangePropertyError(T),
 }
 
 #[derive(Debug, Copy, Clone)]
