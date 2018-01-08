@@ -102,6 +102,38 @@ impl TopLevelInputOutputWindow {
             Err(()) => Err(SetClassPropertyError::ChangePropertyError(self)),
         }
     }
+
+    /// Set `WM_ICON_SIZE` property.
+    pub fn set_icon_size(self,
+        min_width: i32,
+        min_height: i32,
+        max_width: i32,
+        max_height: i32,
+        width_inc: i32,
+        height_inc: i32,
+    ) -> Self {
+        let mut property_data = PropertyData::<u32>::new(
+            Atom::from_raw(xlib::XA_WM_ICON_SIZE),
+            Atom::from_raw(xlib::XA_WM_ICON_SIZE),
+        );
+        {
+            let data = property_data.data_mut();
+            data.push(min_width as u32);
+            data.push(min_height as u32);
+            data.push(max_width as u32);
+            data.push(max_height as u32);
+            data.push(width_inc as u32);
+            data.push(height_inc as u32);
+        }
+
+        let property = Property::Long(property_data);
+
+        // This should not panic because change_property function
+        // returns error only if there is too many data items in property.
+        self.change_property(property, ChangePropertyMode::Replace).unwrap();
+
+        self
+    }
 }
 
 #[derive(Debug)]
