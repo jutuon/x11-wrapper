@@ -16,7 +16,7 @@ use core::screen::Screen;
 use core::utils::{Atom, XLIB_NONE, AtomList, Text, TextError, to_xlib_bool};
 
 /// A non root window
-pub trait Window {
+pub trait Window: Sized {
     fn raw_display(&self) -> *mut xlib::Display;
     fn window_id(&self) -> xlib::Window;
 }
@@ -475,7 +475,7 @@ pub trait WindowProperties: Window {
     }
 
     /// Set properties with type `TEXT`.
-    fn set_text_property<T: Into<Atom>>(&self, mut text: Text, property: T) {
+    fn set_text_property<T: Into<Atom>>(self, mut text: Text, property: T) -> Self {
         unsafe {
             xlib::XSetTextProperty(
                 self.raw_display(),
@@ -484,6 +484,8 @@ pub trait WindowProperties: Window {
                 property.into().atom_id()
             );
         }
+
+        self
     }
 
     /// Get properties with type `TEXT`.

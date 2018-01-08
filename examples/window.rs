@@ -1,11 +1,13 @@
 extern crate x11_wrapper;
 
 use x11_wrapper::core::window::input_output::{InputOutputWindowBuilder};
+use x11_wrapper::core::window::WindowProperties;
 use x11_wrapper::core::display::Display;
 use x11_wrapper::core::event::{EventMask, SimpleEvent};
 use x11_wrapper::core::utils::Text;
 use x11_wrapper::protocol::Protocols;
 use x11_wrapper::property::ewmh::NetWmStateHandler;
+use x11_wrapper::property::icccm;
 use x11_wrapper::core::window::attribute::{CommonAttributes, InputOutputWindowAttributes};
 
 fn main() {
@@ -40,15 +42,17 @@ fn main() {
         .set_background_pixel(0x000000)
         .build_input_output_window()
         .unwrap()
-        .set_window_name(window_title)
-        .set_window_icon_name(window_icon_text)
+        .set_text_property(window_title, icccm::TextProperty::Name)
+        .set_text_property(window_icon_text, icccm::TextProperty::IconName)
         .start_configuring_normal_hints()
         .unwrap()
         .set_min_window_size(640, 480)
         .end()
         .set_protocols(protocols.protocol_atom_list())
-        .unwrap()
-        .map_window();
+        .unwrap();
+
+
+    window.map_window();
 
     display.flush_output_buffer();
 
