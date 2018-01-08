@@ -3,7 +3,7 @@ extern crate x11_wrapper;
 use x11_wrapper::core::window::input_output::{InputOutputWindowBuilder};
 use x11_wrapper::core::window::WindowProperties;
 use x11_wrapper::core::display::Display;
-use x11_wrapper::core::event::{EventMask, SimpleEvent};
+use x11_wrapper::core::event::{EventMask, SimpleEvent, EventBuffer};
 use x11_wrapper::core::utils::Text;
 use x11_wrapper::protocol::Protocols;
 use x11_wrapper::property::ewmh::NetWmStateHandler;
@@ -49,21 +49,28 @@ fn main() {
         .set_min_window_size(640, 480)
         .end()
         .set_protocols(protocols.protocol_atom_list())
-        .unwrap();
-
-
-    window.map_window();
+        .unwrap()
+        .map_window();
 
     display.flush_output_buffer();
 
     let mut net_wm_state_handler = NetWmStateHandler::new(&display).unwrap();
+    let mut event_buffer = EventBuffer::new();
 
     loop {
-        let event = display.read_event_blocking().event().into_simple_event();
+        let event = display.read_event_blocking(&mut event_buffer).into_event().into_simple_event();
 
         println!("{:?}", &event);
 
         match &event {
+            // Key E
+            &SimpleEvent::KeyRelease { keycode: 26 } => {
+                println!("Window properties:");
+                for property in window.list_properties().atoms() {
+                    let property_name = property.get_name(&display).unwrap();
+                    println!("{}", property_name);
+                }
+            }
             // Key W
             &SimpleEvent::KeyRelease { keycode: 25 } => {
                 let event = net_wm_state_handler.toggle_fullscreen(&window);

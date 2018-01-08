@@ -200,6 +200,7 @@ impl AtomName {
     }
 }
 
+#[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct Atom {
     // Atom does not require display handle because atoms
@@ -270,7 +271,7 @@ impl Atom {
 /// In C language, minimum requirement for int type is 16 bits, so
 /// if atom count will be equal or less than `i16::max_value()` you
 /// don't have to worry about panics from `add` method.
-pub struct AtomList(Vec<xlib::Atom>);
+pub struct AtomList(Vec<Atom>);
 
 impl AtomList {
     pub fn new() -> Self {
@@ -283,7 +284,7 @@ impl AtomList {
             panic!("Error: AtomList is full.");
         }
 
-        self.0.push(atom.atom_id())
+        self.0.push(atom)
     }
 
     /// This method returns values in range [0; c_int::max_value()]
@@ -292,7 +293,11 @@ impl AtomList {
     }
 
     pub(crate) fn as_mut_ptr(&mut self) -> *mut xlib::Atom {
-        self.0.as_mut_slice().as_mut_ptr()
+        self.0.as_mut_slice().as_mut_ptr() as *mut xlib::Atom
+    }
+
+    pub fn atoms(&self) -> &Vec<Atom> {
+        &self.0
     }
 }
 

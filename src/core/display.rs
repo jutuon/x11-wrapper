@@ -8,7 +8,7 @@ use x11::xlib;
 
 use super::screen::Screen;
 use super::visual::Visual;
-use super::event::{send_event, EventBuffer, EventCreator, EventMask};
+use super::event::{send_event, EventBuffer, EventCreator, EventMask, RawEvent};
 
 #[derive(Debug)]
 pub struct DisplayHandle {
@@ -41,7 +41,6 @@ impl Drop for DisplayHandle {
 
 pub struct Display {
     display_handle: Arc<DisplayHandle>,
-    event_buffer: EventBuffer,
 }
 
 impl Display {
@@ -57,7 +56,6 @@ impl Display {
 
         Ok(Self {
             display_handle: DisplayHandle::new_in_arc(raw_display),
-            event_buffer: EventBuffer::zeroed(),
         })
     }
 
@@ -165,8 +163,8 @@ impl Display {
         }
     }
 
-    /// Returns true if function copied new event to `event_ptr`.
-    pub fn read_event(&mut self) -> Option<&EventBuffer> {
+    /// Try to read event from Xlib event queue to `EventBuffer`.
+    pub fn read_event<'a>(&mut self, event_buffer: &'a mut EventBuffer) -> Option<RawEvent<'a>> {
         let mut event_count = self.events_queued(EventsQueuedMode::QueuedAlready);
         if event_count <= 0 {
             event_count = self.events_queued(EventsQueuedMode::QueuedAfterReading);
@@ -176,16 +174,16 @@ impl Display {
             }
         }
 
-        Some(self.read_event_blocking())
+        Some(self.read_event_blocking(event_buffer))
     }
 
     /// Blocks until event is received.
-    pub fn read_event_blocking(&mut self) -> &EventBuffer {
+    pub fn read_event_blocking<'a>(&mut self, event_buffer: &'a mut EventBuffer) -> RawEvent<'a> {
         unsafe {
-            xlib::XNextEvent(self.raw_display(), self.event_buffer.event_mut_ptr());
+            xlib::XNextEvent(self.raw_display(), event_buffer.event_mut_ptr());
         }
 
-        &self.event_buffer
+        RawEvent::new(event_buffer)
     }
 
     /// Sends new event.

@@ -10,7 +10,7 @@ pub struct EventBuffer {
 }
 
 impl EventBuffer {
-    pub(crate) fn zeroed() -> Self {
+    pub fn new() -> Self {
         Self {
             event: unsafe { mem::zeroed() },
         }
@@ -19,62 +19,76 @@ impl EventBuffer {
     pub(crate) fn event_mut_ptr(&mut self) -> *mut xlib::XEvent {
         &mut self.event
     }
+}
 
-    pub fn raw_event(&self) -> &xlib::XEvent {
-        &self.event
+pub struct RawEvent<'a> {
+    buffer: &'a EventBuffer
+}
+
+impl <'a> RawEvent<'a> {
+    pub(crate) fn new(buffer: &EventBuffer) -> RawEvent {
+        RawEvent {
+            buffer
+        }
     }
 
-    pub fn event<'a>(&'a self) -> Event<'a> {
+    pub fn raw_event(&self) -> &xlib::XEvent {
+        &self.buffer.event
+    }
+
+    pub fn into_event(self) -> Event<'a> {
         unsafe {
-            match self.event.type_ {
-                xlib::MotionNotify => Event::MotionNotify(&self.event.motion),
+            let event = &self.buffer.event;
 
-                xlib::ButtonPress => Event::ButtonPress(&self.event.button),
-                xlib::ButtonRelease => Event::ButtonRelease(&self.event.button),
-                xlib::ColormapNotify => Event::ColormapNotify(&self.event.colormap),
-                xlib::EnterNotify => Event::EnterNotify(&self.event.crossing),
-                xlib::LeaveNotify => Event::LeaveNotify(&self.event.crossing),
-                xlib::Expose => Event::Expose(&self.event.expose),
+            match event.type_ {
+                xlib::MotionNotify => Event::MotionNotify(&event.motion),
 
-                xlib::GraphicsExpose => Event::GraphicsExpose(&self.event.graphics_expose),
-                xlib::NoExpose => Event::NoExpose(&self.event.no_expose),
+                xlib::ButtonPress => Event::ButtonPress(&event.button),
+                xlib::ButtonRelease => Event::ButtonRelease(&event.button),
+                xlib::ColormapNotify => Event::ColormapNotify(&event.colormap),
+                xlib::EnterNotify => Event::EnterNotify(&event.crossing),
+                xlib::LeaveNotify => Event::LeaveNotify(&event.crossing),
+                xlib::Expose => Event::Expose(&event.expose),
 
-                xlib::FocusIn => Event::FocusIn(&self.event.focus_change),
-                xlib::FocusOut => Event::FocusOut(&self.event.focus_change),
+                xlib::GraphicsExpose => Event::GraphicsExpose(&event.graphics_expose),
+                xlib::NoExpose => Event::NoExpose(&event.no_expose),
 
-                xlib::KeymapNotify => Event::KeymapNotify(&self.event.keymap),
-                xlib::KeyPress => Event::KeyPress(&self.event.key),
-                xlib::KeyRelease => Event::KeyRelease(&self.event.key),
+                xlib::FocusIn => Event::FocusIn(&event.focus_change),
+                xlib::FocusOut => Event::FocusOut(&event.focus_change),
+
+                xlib::KeymapNotify => Event::KeymapNotify(&event.keymap),
+                xlib::KeyPress => Event::KeyPress(&event.key),
+                xlib::KeyRelease => Event::KeyRelease(&event.key),
                 // MotionNotify
-                xlib::PropertyNotify => Event::PropertyNotify(&self.event.property),
-                xlib::ResizeRequest => Event::ResizeRequest(&self.event.resize_request),
+                xlib::PropertyNotify => Event::PropertyNotify(&event.property),
+                xlib::ResizeRequest => Event::ResizeRequest(&event.resize_request),
 
-                xlib::CirculateNotify => Event::CirculateNotify(&self.event.circulate),
-                xlib::ConfigureNotify => Event::ConfigureNotify(&self.event.configure),
-                xlib::DestroyNotify => Event::DestroyNotify(&self.event.destroy_window),
-                xlib::GravityNotify => Event::GravityNotify(&self.event.gravity),
-                xlib::MapNotify => Event::MapNotify(&self.event.map),
-                xlib::ReparentNotify => Event::ReparentNotify(&self.event.reparent),
-                xlib::UnmapNotify => Event::UnmapNotify(&self.event.unmap),
+                xlib::CirculateNotify => Event::CirculateNotify(&event.circulate),
+                xlib::ConfigureNotify => Event::ConfigureNotify(&event.configure),
+                xlib::DestroyNotify => Event::DestroyNotify(&event.destroy_window),
+                xlib::GravityNotify => Event::GravityNotify(&event.gravity),
+                xlib::MapNotify => Event::MapNotify(&event.map),
+                xlib::ReparentNotify => Event::ReparentNotify(&event.reparent),
+                xlib::UnmapNotify => Event::UnmapNotify(&event.unmap),
 
                 // CirculateNotify
                 // ConfigureNotify
-                xlib::CreateNotify => Event::CreateNotify(&self.event.create_window),
+                xlib::CreateNotify => Event::CreateNotify(&event.create_window),
                 // DestroyNotify
                 // GravityNotify
                 // MapNotify
                 // ReparentNotify
                 // UnmapNotify
-                xlib::CirculateRequest => Event::CirculateRequest(&self.event.circulate_request),
-                xlib::ConfigureRequest => Event::ConfigureRequest(&self.event.configure_request),
-                xlib::MapRequest => Event::MapRequest(&self.event.map_request),
+                xlib::CirculateRequest => Event::CirculateRequest(&event.circulate_request),
+                xlib::ConfigureRequest => Event::ConfigureRequest(&event.configure_request),
+                xlib::MapRequest => Event::MapRequest(&event.map_request),
 
-                xlib::ClientMessage => Event::ClientMessage(&self.event.client_message),
-                xlib::MappingNotify => Event::MappingNotify(&self.event.mapping),
-                xlib::SelectionClear => Event::SelectionClear(&self.event.selection_clear),
-                xlib::SelectionNotify => Event::SelectionNotify(&self.event.selection),
-                xlib::SelectionRequest => Event::SelectionRequest(&self.event.selection_request),
-                xlib::VisibilityNotify => Event::VisibilityNotify(&self.event.visibility),
+                xlib::ClientMessage => Event::ClientMessage(&event.client_message),
+                xlib::MappingNotify => Event::MappingNotify(&event.mapping),
+                xlib::SelectionClear => Event::SelectionClear(&event.selection_clear),
+                xlib::SelectionNotify => Event::SelectionNotify(&event.selection),
+                xlib::SelectionRequest => Event::SelectionRequest(&event.selection_request),
+                xlib::VisibilityNotify => Event::VisibilityNotify(&event.visibility),
 
                 event_type => Event::UnknownEvent(event_type),
             }
