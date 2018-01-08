@@ -132,20 +132,23 @@ pub enum StackMode {
 
 #[derive(Debug)]
 pub struct PropertyData<T> {
+    name: Atom,
     property_type: Atom,
     data: Vec<T>,
 }
 
 impl PropertyData<u8> {
-    pub fn from_data(data: &[u8], property_type: Atom) -> Self {
+    pub fn from_data(data: &[u8], name: Atom, property_type: Atom) -> Self {
         Self {
+            name,
             property_type,
             data: data.to_vec(),
         }
     }
 
-    pub fn new(property_type: Atom) -> Self {
+    pub fn new(name: Atom, property_type: Atom) -> Self {
         Self {
+            name,
             property_type,
             data: vec![],
         }
@@ -153,15 +156,17 @@ impl PropertyData<u8> {
 }
 
 impl PropertyData<u16> {
-    pub fn from_data(data: &[u16], property_type: Atom) -> Self {
+    pub fn from_data(data: &[u16], name: Atom, property_type: Atom) -> Self {
         Self {
+            name,
             property_type,
             data: data.to_vec(),
         }
     }
 
-    pub fn new(property_type: Atom) -> Self {
+    pub fn new(name: Atom, property_type: Atom) -> Self {
         Self {
+            name,
             property_type,
             data: vec![],
         }
@@ -169,15 +174,17 @@ impl PropertyData<u16> {
 }
 
 impl PropertyData<u32> {
-    pub fn from_data(data: &[u32], property_type: Atom) -> Self {
+    pub fn from_data(data: &[u32], name: Atom, property_type: Atom) -> Self {
         Self {
+            name,
             property_type,
             data: data.to_vec(),
         }
     }
 
-    pub fn new(property_type: Atom) -> Self {
+    pub fn new(name: Atom, property_type: Atom) -> Self {
         Self {
+            name,
             property_type,
             data: vec![],
         }
@@ -195,6 +202,10 @@ impl <T> PropertyData<T> {
 
     pub fn property_type(&self) -> Atom {
         self.property_type
+    }
+
+    pub fn property_name(&self) -> Atom {
+        self.name
     }
 
     fn as_mut_ptr(&mut self) -> *mut T {
@@ -248,6 +259,14 @@ impl Property {
             &Property::Char(ref data) => data.property_type(),
             &Property::Short(ref data) => data.property_type(),
             &Property::Long(ref data) => data.property_type(),
+        }
+    }
+
+    pub fn property_name(&self) -> Atom {
+        match self {
+            &Property::Char(ref data) => data.property_name(),
+            &Property::Short(ref data) => data.property_name(),
+            &Property::Long(ref data) => data.property_name(),
         }
     }
 }
@@ -321,7 +340,11 @@ pub trait WindowProperties: Window {
                     slice::from_raw_parts(prop_return, bytes_after_return as usize)
                 };
 
-                let property_data = PropertyData::<u8>::from_data(data, Atom::from_raw(actual_type_return));
+                let property_data = PropertyData::<u8>::from_data(
+                    data,
+                    property_name,
+                    Atom::from_raw(actual_type_return),
+                );
 
                 let data_format = match actual_format_return {
                     8 => PropertyDataFormat::Char,
@@ -344,21 +367,21 @@ pub trait WindowProperties: Window {
                             slice::from_raw_parts(prop_return, nitems_return as usize)
                         };
 
-                        Property::Char(PropertyData::<u8>::from_data(data, property_type_atom))
+                        Property::Char(PropertyData::<u8>::from_data(data, property_name, property_type_atom))
                     }
                     16 => {
                         let data: &[u16] = unsafe {
                             slice::from_raw_parts(prop_return as *const u16, nitems_return as usize)
                         };
 
-                        Property::Short(PropertyData::<u16>::from_data(data, property_type_atom))
+                        Property::Short(PropertyData::<u16>::from_data(data, property_name, property_type_atom))
                     }
                     32 => {
                         let data: &[u32] = unsafe {
                             slice::from_raw_parts(prop_return as *const u32, nitems_return as usize)
                         };
 
-                        Property::Long(PropertyData::<u32>::from_data(data, property_type_atom))
+                        Property::Long(PropertyData::<u32>::from_data(data, property_name, property_type_atom))
                     }
                     format => {
                         return Err(PropertyError::UnknownDataFormat(format));
@@ -431,7 +454,6 @@ pub trait WindowProperties: Window {
     /// space, a BadAlloc error results.) "
     fn change_property(
         &self,
-        property_name: Atom,
         mut property: Property,
         mode: ChangePropertyMode,
     ) -> Result<(), ()> {
@@ -440,7 +462,7 @@ pub trait WindowProperties: Window {
             xlib::XChangeProperty(
                 self.raw_display(),
                 self.window_id(),
-                property_name.atom_id(),
+                property.property_name().atom_id(),
                 property.property_type().atom_id(),
                 property.to_xlib_change_property_format(),
                 mode.to_xlib_function_parameter(),
