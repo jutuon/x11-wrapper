@@ -19,6 +19,7 @@ lazy_static! {
     static ref INIT_FLAG: Mutex<bool> = Mutex::new(false);
 }
 
+#[derive(Debug)]
 /// Initialization error
 pub enum XlibInitError {
     AlreadyInitialized,

@@ -15,3 +15,4 @@ pub mod property;
 
 
 pub use core::XlibHandle;
+pub use core::error::check_error;

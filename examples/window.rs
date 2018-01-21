@@ -1,8 +1,8 @@
 extern crate x11_wrapper;
 
+use x11_wrapper::XlibHandle;
 use x11_wrapper::core::window::input_output::{InputOutputWindowBuilder};
 use x11_wrapper::core::window::WindowProperties;
-use x11_wrapper::core::display::Display;
 use x11_wrapper::core::event::{EventMask, SimpleEvent, EventBuffer};
 use x11_wrapper::core::utils::Text;
 use x11_wrapper::protocol::Protocols;
@@ -13,7 +13,9 @@ use x11_wrapper::core::window::attribute::{CommonAttributes, InputOutputWindowAt
 fn main() {
     println!("Hello world");
 
-    let mut display = Display::new().unwrap();
+    let xlib_handle = XlibHandle::initialize_xlib().unwrap();
+
+    let mut display = xlib_handle.create_display().unwrap();
 
     println!("display string: {:?}", display.display_string());
     println!("protocol version: {}", display.protocol_version());
@@ -86,6 +88,11 @@ fn main() {
                 }
             }
             _ => (),
+        }
+
+        if let Some(error) = x11_wrapper::check_error(&display) {
+            eprintln!("xlib error: {:?}", error);
+            break;
         }
     }
 }
