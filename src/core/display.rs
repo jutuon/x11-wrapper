@@ -13,13 +13,15 @@ use super::event::{send_event, EventBuffer, EventCreator, EventMask, RawEvent};
 
 #[derive(Debug)]
 pub struct DisplayHandle {
+    xlib_handle: XlibHandle,
     raw_display: *mut xlib::Display,
     _marker: PhantomData<xlib::Display>,
 }
 
 impl DisplayHandle {
-    pub(crate) fn new_in_arc(raw_display: *mut xlib::Display) -> Arc<DisplayHandle> {
+    pub(crate) fn new_in_arc(raw_display: *mut xlib::Display, xlib_handle: XlibHandle) -> Arc<DisplayHandle> {
         Arc::new(DisplayHandle {
+            xlib_handle,
             raw_display,
             _marker: PhantomData,
         })
@@ -27,6 +29,10 @@ impl DisplayHandle {
 
     pub(crate) fn raw_display(&self) -> *mut xlib::Display {
         self.raw_display
+    }
+
+    pub(crate) fn xlib_handle(&self) -> &XlibHandle {
+        &self.xlib_handle
     }
 }
 
@@ -46,17 +52,22 @@ pub struct Display {
 
 impl Display {
     /// Create new connection to X11 server.
-    pub(crate) fn new(_xlib_handle: XlibHandle) -> Result<Self, ()> {
+    pub(crate) fn new(xlib_handle: XlibHandle) -> Result<Self, ()> {
         // TODO: display_name string support
 
-        let raw_display = unsafe { xlib::XOpenDisplay(ptr::null()) };
+        let raw_display = unsafe {
+            xlib_function!(
+                xlib_handle,
+                XOpenDisplay(ptr::null())
+            )
+        };
 
         if raw_display.is_null() {
             return Err(());
         }
 
         Ok(Self {
-            display_handle: DisplayHandle::new_in_arc(raw_display),
+            display_handle: DisplayHandle::new_in_arc(raw_display, xlib_handle),
         })
     }
 

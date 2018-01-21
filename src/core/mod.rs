@@ -11,8 +11,6 @@ pub mod utils;
 
 use std::sync::Mutex;
 
-use x11::xlib;
-
 use self::display::Display;
 
 lazy_static! {
@@ -25,35 +23,62 @@ pub enum XlibInitError {
     AlreadyInitialized,
     /// This error can only happen if runtime library
     /// loading feature is enabled.
-    LibraryLoadingError,
+    LibraryLoadingError(String),
 
     /// Error in Xlib function `xlib::XInitThreads`.
     XInitThreadsError,
 }
 
+#[cfg(not(feature = "runtime-linking"))]
 #[derive(Debug, Clone)]
 pub struct XlibHandle;
 
+
+#[cfg(feature = "runtime-linking")]
+#[derive(Debug, Clone)]
+pub struct XlibHandle {
+    pub(crate) functions: std::sync::Arc<x11::xlib::Xlib>,
+}
+
+
 impl XlibHandle {
+    #[cfg(not(feature = "runtime-linking"))]
+    fn new() -> Result<Self, XlibInitError> {
+        Ok(XlibHandle)
+    }
+
+    #[cfg(feature = "runtime-linking")]
+    fn new() -> Result<Self, XlibInitError> {
+        let functions = x11::xlib::Xlib::load().map_err(|e| {
+            XlibInitError::LibraryLoadingError(e.detail().into_string())
+        })?;
+
+        Ok(XlibHandle {
+            functions: std::sync::Arc::new(functions)
+        })
+    }
+
     pub fn initialize_xlib() -> Result<Self, XlibInitError> {
         let mut guard = INIT_FLAG.lock().unwrap();
 
         if *guard {
             Err(XlibInitError::AlreadyInitialized)
         } else {
+            let xlib_handle = Self::new()?;
+
             let status = unsafe {
-                xlib::XInitThreads()
+                xlib_function!(&xlib_handle, XInitThreads())
             };
 
             if status == 0 {
                 return Err(XlibInitError::XInitThreadsError);
             }
 
-            error::set_xlib_error_handler();
+            error::set_xlib_error_handler(&xlib_handle);
 
             *guard = true;
 
-            Ok(XlibHandle)
+            Ok(xlib_handle)
         }
     }
 

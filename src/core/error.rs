@@ -9,6 +9,7 @@ use std::process;
 use std::mem;
 
 use super::display::Display;
+use super::XlibHandle;
 
 use x11::xlib;
 
@@ -143,9 +144,12 @@ extern "C" fn protocol_error_handler(
 
 
 
-pub(crate) fn set_xlib_error_handler() {
+pub(crate) fn set_xlib_error_handler(_xlib_handle: &XlibHandle) {
     unsafe {
-        xlib::XSetErrorHandler(Some(protocol_error_handler));
+        xlib_function!(
+            _xlib_handle,
+            XSetErrorHandler(Some(protocol_error_handler))
+        );
     }
 }
 
