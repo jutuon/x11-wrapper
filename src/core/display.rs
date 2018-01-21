@@ -6,6 +6,7 @@ use std::ffi::CStr;
 
 use x11::xlib;
 
+use super::XlibHandle;
 use super::screen::Screen;
 use super::visual::Visual;
 use super::event::{send_event, EventBuffer, EventCreator, EventMask, RawEvent};
@@ -45,7 +46,7 @@ pub struct Display {
 
 impl Display {
     /// Create new connection to X11 server.
-    pub fn new() -> Result<Self, ()> {
+    pub(crate) fn new(_xlib_handle: XlibHandle) -> Result<Self, ()> {
         // TODO: display_name string support
 
         let raw_display = unsafe { xlib::XOpenDisplay(ptr::null()) };
