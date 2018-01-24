@@ -10,6 +10,7 @@ pub mod visual;
 pub mod utils;
 
 use std::sync::Mutex;
+use std::fmt;
 
 use self::display::Display;
 
@@ -30,16 +31,21 @@ pub enum XlibInitError {
 }
 
 #[cfg(not(feature = "runtime-linking"))]
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct XlibHandle;
 
 
 #[cfg(feature = "runtime-linking")]
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct XlibHandle {
-    pub(crate) functions: std::sync::Arc<x11::xlib::Xlib>,
+    pub(crate) functions: ::std::sync::Arc<::x11::xlib::Xlib>,
 }
 
+impl fmt::Debug for XlibHandle {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "XlibHandle")
+    }
+}
 
 impl XlibHandle {
     #[cfg(not(feature = "runtime-linking"))]
@@ -49,12 +55,12 @@ impl XlibHandle {
 
     #[cfg(feature = "runtime-linking")]
     fn new() -> Result<Self, XlibInitError> {
-        let functions = x11::xlib::Xlib::load().map_err(|e| {
-            XlibInitError::LibraryLoadingError(e.detail().into_string())
+        let functions = ::x11::xlib::Xlib::open().map_err(|e| {
+            XlibInitError::LibraryLoadingError(e.detail().to_string())
         })?;
 
         Ok(XlibHandle {
-            functions: std::sync::Arc::new(functions)
+            functions: ::std::sync::Arc::new(functions)
         })
     }
 

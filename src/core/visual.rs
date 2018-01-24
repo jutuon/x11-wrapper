@@ -23,11 +23,14 @@ impl Visual {
         let mut count = 0;
 
         let visual_info_list = unsafe {
-            xlib::XGetVisualInfo(
-                display_handle.raw_display(),
-                xlib::VisualIDMask,
-                &mut template,
-                &mut count,
+            xlib_function!(
+                display_handle.xlib_handle(),
+                XGetVisualInfo(
+                    display_handle.raw_display(),
+                    xlib::VisualIDMask,
+                    &mut template,
+                    &mut count
+                )
             )
         };
 
@@ -39,7 +42,10 @@ impl Visual {
             };
 
             unsafe {
-                xlib::XFree(visual_info_list as *mut c_void);
+                xlib_function!(
+                    display_handle.xlib_handle(),
+                    XFree(visual_info_list as *mut c_void)
+                );
             }
 
             Some(Self {

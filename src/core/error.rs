@@ -182,11 +182,14 @@ pub fn check_error(display: &Display) -> Option<ErrorEventAndText> {
             let mut text_buffer: [c_uchar; TEXT_BUFFER_SIZE] = [0; TEXT_BUFFER_SIZE];
 
             unsafe {
-                xlib::XGetErrorText(
-                    display.raw_display(),
-                    error_event.error.to_xlib_error_code() as c_int,
-                    text_buffer.as_mut_ptr() as *mut c_char,
-                    TEXT_BUFFER_SIZE as c_int,
+                xlib_function!(
+                    display.xlib_handle(),
+                    XGetErrorText(
+                        display.raw_display(),
+                        error_event.error.to_xlib_error_code() as c_int,
+                        text_buffer.as_mut_ptr() as *mut c_char,
+                        TEXT_BUFFER_SIZE as c_int
+                    )
                 );
             }
 

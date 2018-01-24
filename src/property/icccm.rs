@@ -10,6 +10,7 @@ use x11::xlib;
 use core::window::input_output::TopLevelInputOutputWindow;
 use core::window::{Window, WindowProperties, PropertyData, Property, ChangePropertyMode};
 use core::utils::{AtomList, Atom, to_xlib_bool};
+use core::XlibHandle;
 
 impl TopLevelInputOutputWindow {
     /// Set `WM_HINTS` property.
@@ -31,11 +32,14 @@ impl TopLevelInputOutputWindow {
     /// Set `WM_PROTOCOLS` property.
     pub fn set_protocols(self, mut atom_list: AtomList) -> Result<Self, Self> {
         let status = unsafe {
-            xlib::XSetWMProtocols(
-                self.raw_display(),
-                self.window_id(),
-                atom_list.as_mut_ptr(),
-                atom_list.len(),
+            xlib_function!(
+                self.xlib_handle(),
+                XSetWMProtocols(
+                    self.raw_display(),
+                    self.window_id(),
+                    atom_list.as_mut_ptr(),
+                    atom_list.len()
+                )
             )
         };
 
@@ -49,7 +53,7 @@ impl TopLevelInputOutputWindow {
     /// Set `WM_TRANSIENT_FOR` property.
     pub fn set_transient_for_hint(self, window_id: xlib::Window) -> Self {
         unsafe {
-            xlib::XSetTransientForHint(self.raw_display(), self.window_id(), window_id);
+            xlib_function!(self.xlib_handle(), XSetTransientForHint(self.raw_display(), self.window_id(), window_id));
         }
 
         self
@@ -173,13 +177,14 @@ impl From<TextProperty> for Atom {
 struct Hints {
     wm_hints_ptr: *mut xlib::XWMHints,
     _marker: PhantomData<xlib::XWMHints>,
+    _xlib_handle: XlibHandle,
 }
 
 impl Hints {
     /// Returns error if there is no enough memory to
     /// allocate `xlib::XWMHints` structure.
-    fn new() -> Result<Self, ()> {
-        let wm_hints_ptr = unsafe { xlib::XAllocWMHints() };
+    fn new(xlib_handle: &XlibHandle) -> Result<Self, ()> {
+        let wm_hints_ptr = unsafe { xlib_function!(xlib_handle, XAllocWMHints()) };
 
         if wm_hints_ptr.is_null() {
             Err(())
@@ -187,6 +192,7 @@ impl Hints {
             Ok(Self {
                 wm_hints_ptr,
                 _marker: PhantomData,
+                _xlib_handle: xlib_handle.clone(),
             })
         }
     }
@@ -199,7 +205,7 @@ impl Hints {
 impl Drop for Hints {
     fn drop(&mut self) {
         unsafe {
-            xlib::XFree(self.wm_hints_ptr as *mut c_void);
+            xlib_function!(self._xlib_handle, XFree(self.wm_hints_ptr as *mut c_void));
         }
     }
 }
@@ -236,7 +242,7 @@ impl HintsConfigurator {
     /// Returns error if there is no enough memory to
     /// allocate `xlib::XWMHints` structure.
     fn new(window: TopLevelInputOutputWindow) -> Result<Self, TopLevelInputOutputWindow> {
-        let hints = match Hints::new() {
+        let hints = match Hints::new(window.xlib_handle()) {
             Ok(hints) => hints,
             Err(()) => return Err(window),
         };
@@ -330,10 +336,13 @@ impl HintsConfigurator {
         unsafe {
              (*self.hints.wm_hints_ptr).flags = self.window_hints_flags.bits();
 
-            xlib::XSetWMHints(
-                self.window.raw_display(),
-                self.window.window_id(),
-                self.hints.as_mut_ptr(),
+            xlib_function!(
+                self.window.xlib_handle(),
+                XSetWMHints(
+                    self.window.raw_display(),
+                    self.window.window_id(),
+                    self.hints.as_mut_ptr()
+                )
             );
         }
 
@@ -345,13 +354,14 @@ impl HintsConfigurator {
 struct SizeHints {
     size_hints_ptr: *mut xlib::XSizeHints,
     _marker: PhantomData<xlib::XSizeHints>,
+    _xlib_handle: XlibHandle,
 }
 
 impl SizeHints {
     /// Returns error if there is no enough memory to
     /// allocate `xlib::XSizeHints` structure.
-    fn new() -> Result<Self, ()> {
-        let size_hints_ptr = unsafe { xlib::XAllocSizeHints() };
+    fn new(xlib_handle: &XlibHandle) -> Result<Self, ()> {
+        let size_hints_ptr = unsafe { xlib_function!(xlib_handle, XAllocSizeHints()) };
 
         if size_hints_ptr.is_null() {
             Err(())
@@ -359,6 +369,7 @@ impl SizeHints {
             Ok(Self {
                 size_hints_ptr,
                 _marker: PhantomData,
+                _xlib_handle: xlib_handle.clone(),
             })
         }
     }
@@ -371,7 +382,7 @@ impl SizeHints {
 impl Drop for SizeHints {
     fn drop(&mut self) {
         unsafe {
-            xlib::XFree(self.size_hints_ptr as *mut c_void);
+            xlib_function!(self._xlib_handle, XFree(self.size_hints_ptr as *mut c_void));
         }
     }
 }
@@ -386,7 +397,7 @@ impl NormalHintsConfigurator {
     /// Returns error if there is no enough memory to
     /// allocate `xlib::XSizeHints` structure.
     fn new(window: TopLevelInputOutputWindow) -> Result<Self, TopLevelInputOutputWindow> {
-        let size_hints = match SizeHints::new() {
+        let size_hints = match SizeHints::new(window.xlib_handle()) {
             Ok(hints) => hints,
             Err(()) => return Err(window),
         };
@@ -465,10 +476,13 @@ impl NormalHintsConfigurator {
 
     pub fn end(mut self) -> TopLevelInputOutputWindow {
         unsafe {
-            xlib::XSetWMNormalHints(
-                self.window.raw_display(),
-                self.window.window_id(),
-                self.size_hints.as_mut_ptr(),
+            xlib_function!(
+                self.window.xlib_handle(),
+                XSetWMNormalHints(
+                    self.window.raw_display(),
+                    self.window.window_id(),
+                    self.size_hints.as_mut_ptr()
+                )
             );
         }
 

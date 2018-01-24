@@ -47,11 +47,14 @@ impl CreatedColormap {
         };
 
         let colormap = unsafe {
-            xlib::XCreateColormap(
-                display_handle.raw_display(),
-                root_window_id,
-                visual.raw_visual(),
-                xlib::AllocNone,
+            xlib_function!(
+                display_handle.xlib_handle(),
+                XCreateColormap(
+                    display_handle.raw_display(),
+                    root_window_id,
+                    visual.raw_visual(),
+                    xlib::AllocNone
+                )
             )
         };
         //TODO: colormap AllocAll
@@ -79,7 +82,13 @@ impl Drop for CreatedColormap {
         // TODO: check error
 
         unsafe {
-            xlib::XFreeColormap(self.display_handle.raw_display(), self.colormap);
+            xlib_function!(
+                self.display_handle.xlib_handle(),
+                XFreeColormap(
+                    self.display_handle.raw_display(),
+                    self.colormap
+                )
+            );
         }
     }
 }

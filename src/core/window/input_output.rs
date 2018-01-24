@@ -12,6 +12,7 @@ use core::display::{DisplayHandle};
 use core::color::{ColormapID, CreatedColormap};
 use core::visual::Visual;
 use core::screen::Screen;
+use core::XlibHandle;
 
 pub struct BuildTopLevelWindow;
 
@@ -134,19 +135,22 @@ impl InputOutputWindowBuilder<BuildTopLevelWindow> {
             };
 
         let window_id = unsafe {
-            xlib::XCreateWindow(
-                self.display_handle.raw_display(),
-                self.parent_window_id,
-                self.x,
-                self.y,
-                self.width,
-                self.height,
-                0,
-                depth,
-                xlib::InputOutput as c_uint,
-                visual,
-                self.attributes.selected_attributes().bits(),
-                self.attributes.xlib_attributes_mut_ptr(),
+            xlib_function!(
+                self.display_handle.xlib_handle(),
+                XCreateWindow(
+                    self.display_handle.raw_display(),
+                    self.parent_window_id,
+                    self.x,
+                    self.y,
+                    self.width,
+                    self.height,
+                    0,
+                    depth,
+                    xlib::InputOutput as c_uint,
+                    visual,
+                    self.attributes.selected_attributes().bits(),
+                    self.attributes.xlib_attributes_mut_ptr()
+                )
             )
         };
 
@@ -176,7 +180,10 @@ impl TopLevelInputOutputWindow {
         // TODO: check errors
 
         unsafe {
-            xlib::XMapWindow(self.display_handle.raw_display(), self.window_id);
+            xlib_function!(
+                self.xlib_handle(),
+                XMapWindow(self.display_handle.raw_display(), self.window_id)
+            );
         }
 
         self
@@ -184,7 +191,10 @@ impl TopLevelInputOutputWindow {
 
     pub fn unmap_window(self) -> Self {
         unsafe {
-            xlib::XUnmapWindow(self.display_handle.raw_display(), self.window_id);
+            xlib_function!(
+                self.xlib_handle(),
+                XUnmapWindow(self.display_handle.raw_display(), self.window_id)
+            );
         }
 
         self
@@ -192,10 +202,13 @@ impl TopLevelInputOutputWindow {
 
     pub fn iconify(&mut self, screen: &Screen) -> Result<(), ()> {
         unsafe {
-            let status = xlib::XIconifyWindow(
-                self.display_handle.raw_display(),
-                self.window_id,
-                screen.screen_number(),
+            let status = xlib_function!(
+                self.xlib_handle(),
+                XIconifyWindow(
+                    self.display_handle.raw_display(),
+                    self.window_id,
+                    screen.screen_number()
+                )
             );
 
             if status == 0 {
@@ -208,10 +221,13 @@ impl TopLevelInputOutputWindow {
 
     pub fn withdraw(&mut self, screen: &Screen) -> Result<(), ()> {
         unsafe {
-            let status = xlib::XWithdrawWindow(
-                self.display_handle.raw_display(),
-                self.window_id,
-                screen.screen_number(),
+            let status = xlib_function!(
+                self.xlib_handle(),
+                XWithdrawWindow(
+                    self.display_handle.raw_display(),
+                    self.window_id,
+                    screen.screen_number()
+                )
             );
 
             if status == 0 {
@@ -227,7 +243,10 @@ impl Drop for TopLevelInputOutputWindow {
     fn drop(&mut self) {
         unsafe {
             // TODO: check errors
-            xlib::XDestroyWindow(self.display_handle.raw_display(), self.window_id);
+            xlib_function!(
+                self.xlib_handle(),
+                XDestroyWindow(self.display_handle.raw_display(), self.window_id)
+            );
         }
     }
 }
@@ -253,6 +272,10 @@ impl_traits!(
 */
 
 impl Window for TopLevelInputOutputWindow {
+    fn xlib_handle(&self) -> &XlibHandle {
+        self.display_handle.xlib_handle()
+    }
+
     fn raw_display(&self) -> *mut xlib::Display {
         self.display_handle.raw_display()
     }

@@ -8,6 +8,7 @@ use super::display::DisplayHandle;
 use super::error::{QueryError, QueryResult};
 use super::visual::Visual;
 use super::event::{send_event, ClientMessageEventCreator, EventMask};
+use super::XlibHandle;
 
 pub struct Screen {
     display_handle: Arc<DisplayHandle>,
@@ -26,39 +27,43 @@ impl Screen {
         self.raw_screen
     }
 
+    fn xlib_handle(&self) -> &XlibHandle {
+        self.display_handle.xlib_handle()
+    }
+
     pub(crate) fn display_handle(&self) -> &Arc<DisplayHandle> {
         &self.display_handle
     }
 
     pub fn black_pixel(&self) -> c_ulong {
-        unsafe { xlib::XBlackPixelOfScreen(self.raw_screen) }
+        unsafe { xlib_function!(self.xlib_handle(), XBlackPixelOfScreen(self.raw_screen)) }
     }
 
     pub fn white_pixel(&self) -> c_ulong {
-        unsafe { xlib::XWhitePixelOfScreen(self.raw_screen) }
+        unsafe { xlib_function!(self.xlib_handle(), XWhitePixelOfScreen(self.raw_screen)) }
     }
 
     pub fn colormap_cells(&self) -> c_int {
-        unsafe { xlib::XCellsOfScreen(self.raw_screen) }
+        unsafe { xlib_function!(self.xlib_handle(), XCellsOfScreen(self.raw_screen)) }
     }
 
     pub fn default_colormap(&self) -> Option<DefaultColormap> {
-        DefaultColormap::new(unsafe { xlib::XDefaultColormapOfScreen(self.raw_screen) })
+        DefaultColormap::new(unsafe { xlib_function!(self.xlib_handle(), XDefaultColormapOfScreen(self.raw_screen)) })
     }
 
     pub fn default_depth(&self) -> c_int {
-        unsafe { xlib::XDefaultDepthOfScreen(self.raw_screen) }
+        unsafe { xlib_function!(self.xlib_handle(), XDefaultDepthOfScreen(self.raw_screen)) }
     }
 
     pub fn default_visual(&self) -> Option<Visual> {
         let id = unsafe {
-            let visual_ptr = xlib::XDefaultVisualOfScreen(self.raw_screen);
+            let visual_ptr = xlib_function!(self.xlib_handle(), XDefaultVisualOfScreen(self.raw_screen));
 
             if visual_ptr.is_null() {
                 return None;
             }
 
-            xlib::XVisualIDFromVisual(visual_ptr)
+            xlib_function!(self.xlib_handle(), XVisualIDFromVisual(visual_ptr))
         };
 
         if id == 0 {
@@ -69,7 +74,7 @@ impl Screen {
     }
 
     pub fn does_backing_store(&self) -> QueryResult<BackingStore> {
-        let result = unsafe { xlib::XDoesBackingStore(self.raw_screen) };
+        let result = unsafe { xlib_function!(self.xlib_handle(), XDoesBackingStore(self.raw_screen)) };
 
         let result = match result {
             xlib::WhenMapped => BackingStore::WhenMapped,
@@ -82,7 +87,7 @@ impl Screen {
     }
 
     pub fn does_save_unders(&self) -> bool {
-        let result = unsafe { xlib::XDoesSaveUnders(self.raw_screen) };
+        let result = unsafe { xlib_function!(self.xlib_handle(), XDoesSaveUnders(self.raw_screen)) };
 
         result == xlib::True
     }
@@ -92,39 +97,39 @@ impl Screen {
     }
 
     pub fn screen_number(&self) -> c_int {
-        unsafe { xlib::XScreenNumberOfScreen(self.raw_screen) }
+        unsafe { xlib_function!(self.xlib_handle(), XScreenNumberOfScreen(self.raw_screen)) }
     }
 
     pub fn width_in_pixels(&self) -> c_int {
-        unsafe { xlib::XWidthOfScreen(self.raw_screen) }
+        unsafe { xlib_function!(self.xlib_handle(), XWidthOfScreen(self.raw_screen)) }
     }
 
     pub fn height_in_pixels(&self) -> c_int {
-        unsafe { xlib::XHeightOfScreen(self.raw_screen) }
+        unsafe { xlib_function!(self.xlib_handle(), XHeightOfScreen(self.raw_screen)) }
     }
 
     pub fn width_in_millimeters(&self) -> c_int {
-        unsafe { xlib::XWidthMMOfScreen(self.raw_screen) }
+        unsafe { xlib_function!(self.xlib_handle(), XWidthMMOfScreen(self.raw_screen)) }
     }
 
     pub fn height_in_millimeters(&self) -> c_int {
-        unsafe { xlib::XHeightMMOfScreen(self.raw_screen) }
+        unsafe { xlib_function!(self.xlib_handle(), XHeightMMOfScreen(self.raw_screen)) }
     }
 
     pub fn max_colormap_count(&self) -> c_int {
-        unsafe { xlib::XMaxCmapsOfScreen(self.raw_screen) }
+        unsafe { xlib_function!(self.xlib_handle(), XMaxCmapsOfScreen(self.raw_screen)) }
     }
 
     pub fn min_colormap_count(&self) -> c_int {
-        unsafe { xlib::XMinCmapsOfScreen(self.raw_screen) }
+        unsafe { xlib_function!(self.xlib_handle(), XMinCmapsOfScreen(self.raw_screen)) }
     }
 
     pub fn planes(&self) -> c_int {
-        unsafe { xlib::XPlanesOfScreen(self.raw_screen) }
+        unsafe { xlib_function!(self.xlib_handle(), XPlanesOfScreen(self.raw_screen)) }
     }
 
     pub fn root_window_id(&self) -> Option<xlib::Window> {
-        let id = unsafe { xlib::XRootWindowOfScreen(self.raw_screen) };
+        let id = unsafe { xlib_function!(self.xlib_handle(), XRootWindowOfScreen(self.raw_screen)) };
 
         if id == 0 {
             None
@@ -147,7 +152,7 @@ impl Screen {
         let window_id = self.root_window_id().ok_or(())?;
 
         send_event(
-            self.display_handle.raw_display(),
+            &self.display_handle,
             window_id,
             false,
             EventMask::SUBSTRUCTURE_NOTIFY | EventMask::SUBSTRUCTURE_REDIRECT,

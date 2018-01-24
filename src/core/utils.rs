@@ -3,16 +3,19 @@ use std::os::raw::{c_char, c_int, c_void};
 use std::mem;
 use std::ptr;
 use std::slice;
+use std::sync::Arc;
 
 use x11::xlib;
 
-use super::display::Display;
+use super::display::{DisplayHandle, Display};
+use super::XlibHandle;
 
 pub const XLIB_NONE: xlib::XID = 0;
 
 /// UTF-8 text
 #[derive(Debug)]
 pub struct Text {
+    display_handle: Arc<DisplayHandle>,
     text_property: xlib::XTextProperty,
 }
 
@@ -44,17 +47,25 @@ impl Text {
         let mut text_property: xlib::XTextProperty = unsafe { mem::zeroed() };
 
         let status = unsafe {
-            xlib::Xutf8TextListToTextProperty(
-                display.raw_display(),
-                &mut one_text,
-                1,
-                xlib::XUTF8StringStyle,
-                &mut text_property,
+            xlib_function!(
+                display.xlib_handle(),
+                Xutf8TextListToTextProperty(
+                    display.raw_display(),
+                    &mut one_text,
+                    1,
+                    xlib::XUTF8StringStyle,
+                    &mut text_property
+                )
             )
         };
 
         match status {
-            0 => Ok(Self { text_property }),
+            0 => {
+                Ok(Self {
+                    display_handle: display.display_handle().clone(),
+                    text_property
+                })
+            }
             X_NO_MEMORY => { // -1
                 Err(TextError::NoMemory)
             }
@@ -66,7 +77,10 @@ impl Text {
                 Err(TextError::UnknownError)
             }
             value => {
-                let text = Self { text_property };
+                let text = Self {
+                    display_handle: display.display_handle().clone(),
+                    text_property
+                };
                 Err(TextError::UnconvertedCharacters(value, text))
             }
         }
@@ -78,24 +92,28 @@ impl Text {
 
 
     /// Converts CString to String with method `to_string_lossy`.
-    pub fn to_string_list(&mut self, display: &Display) -> Result<Vec<String>, TextError<Vec<String>>> {
-        Self::xlib_text_property_to_string_list(self.text_property, display.raw_display())
+    pub fn to_string_list(&mut self) -> Result<Vec<String>, TextError<Vec<String>>> {
+        Self::xlib_text_property_to_string_list(self.text_property, self.display_handle.xlib_handle(), self.display_handle.raw_display())
     }
 
     pub(crate) fn xlib_text_property_to_string_list(
         mut text_property: xlib::XTextProperty,
-        raw_display: *mut xlib::Display
+        xlib_handle: &XlibHandle,
+        raw_display: *mut xlib::Display,
     ) -> Result<Vec<String>, TextError<Vec<String>>> {
         let mut text_list: *mut *mut c_char = ptr::null_mut();
 
         let mut text_count = 0;
 
         let result = unsafe {
-            xlib::Xutf8TextPropertyToTextList(
-                raw_display,
-                &mut text_property,
-                &mut text_list,
-                &mut text_count,
+            xlib_function!(
+                xlib_handle,
+                Xutf8TextPropertyToTextList(
+                    raw_display,
+                    &mut text_property,
+                    &mut text_list,
+                    &mut text_count
+                )
             )
         };
 
@@ -122,7 +140,10 @@ impl Text {
 
         if text_count < 0 {
             unsafe {
-                xlib::XFreeStringList(text_list)
+                xlib_function!(
+                    xlib_handle,
+                    XFreeStringList(text_list)
+                );
             }
 
             return Err(TextError::XlibReturnedNegativeTextCount)
@@ -152,7 +173,10 @@ impl Text {
         };
 
         unsafe {
-            xlib::XFreeStringList(text_list);
+            xlib_function!(
+                xlib_handle,
+                XFreeStringList(text_list)
+            );
         }
 
         final_result
@@ -162,7 +186,10 @@ impl Text {
 impl Drop for Text {
     fn drop(&mut self) {
         unsafe {
-            xlib::XFree(self.text_property.value as *mut c_void);
+            xlib_function!(
+                self.display_handle.xlib_handle(),
+                XFree(self.text_property.value as *mut c_void)
+            );
         }
     }
 }
@@ -225,7 +252,10 @@ impl Atom {
         };
 
         let atom_id = unsafe {
-            xlib::XInternAtom(display.raw_display(), atom_name.as_ptr(), only_if_exists)
+            xlib_function!(
+                display.xlib_handle(),
+                XInternAtom(display.raw_display(), atom_name.as_ptr(), only_if_exists)
+            )
         };
 
         if atom_id == 0 {
@@ -236,7 +266,12 @@ impl Atom {
     }
 
     pub fn get_name(&self, display: &Display) -> Result<String, ()> {
-        let text_ptr = unsafe { xlib::XGetAtomName(display.raw_display(), self.atom_id()) };
+        let text_ptr = unsafe {
+            xlib_function!(
+                display.xlib_handle(),
+                XGetAtomName(display.raw_display(), self.atom_id())
+            )
+        };
 
         if text_ptr.is_null() {
             Err(())
@@ -247,7 +282,10 @@ impl Atom {
             };
 
             unsafe {
-                xlib::XFree(text_ptr as *mut c_void);
+                xlib_function!(
+                    display.xlib_handle(),
+                    XFree(text_ptr as *mut c_void)
+                );
             }
 
             Ok(name)

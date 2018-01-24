@@ -2,8 +2,11 @@
 
 use std::mem;
 use std::os::raw::{c_int, c_long, c_uint};
+use std::sync::Arc;
 
 use x11::xlib;
+
+use super::display::DisplayHandle;
 
 pub struct EventBuffer {
     event: xlib::XEvent,
@@ -292,7 +295,7 @@ impl EventCreator for ClientMessageEventCreator {
 
 /// See documentation of `Display::send_event`.
 pub(crate) fn send_event<T: EventCreator>(
-    raw_display: *mut xlib::Display,
+    display_handle: &Arc<DisplayHandle>,
     window_id: xlib::Window,
     propagate: bool,
     event_mask: EventMask,
@@ -303,11 +306,14 @@ pub(crate) fn send_event<T: EventCreator>(
     let event = event_creator.raw_event_mut();
 
     unsafe {
-        event.any.display = raw_display;
+        event.any.display = display_handle.raw_display();
     }
 
     let status = unsafe {
-        xlib::XSendEvent(raw_display, window_id, propagate, event_mask.bits(), event)
+        xlib_function!(
+            display_handle.xlib_handle(),
+            XSendEvent(display_handle.raw_display(), window_id, propagate, event_mask.bits(), event)
+        )
     };
 
     if status == 0 {

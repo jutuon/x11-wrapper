@@ -39,7 +39,7 @@ impl DisplayHandle {
 impl Drop for DisplayHandle {
     fn drop(&mut self) {
         unsafe {
-            xlib::XCloseDisplay(self.raw_display);
+            xlib_function!(self.xlib_handle(), XCloseDisplay(self.raw_display));
 
             // TODO: check BadGC error
         }
@@ -75,16 +75,20 @@ impl Display {
         &self.display_handle
     }
 
+    pub(crate) fn xlib_handle(&self) -> &XlibHandle {
+        self.display_handle().xlib_handle()
+    }
+
     pub fn raw_display(&self) -> *mut xlib::Display {
         self.display_handle.raw_display
     }
 
     pub fn connection_number(&self) -> c_int {
-        unsafe { xlib::XConnectionNumber(self.raw_display()) }
+        unsafe { xlib_function!(self.xlib_handle(), XConnectionNumber(self.raw_display())) }
     }
 
     pub fn default_screen(&self) -> Screen {
-        let screen = unsafe { xlib::XDefaultScreenOfDisplay(self.raw_display()) };
+        let screen = unsafe { xlib_function!(self.xlib_handle(), XDefaultScreenOfDisplay(self.raw_display())) };
 
         Screen::new(self.display_handle.clone(), screen)
     }
@@ -95,14 +99,14 @@ impl Display {
 
     pub fn display_string(&self) -> &CStr {
         unsafe {
-            let string = xlib::XDisplayString(self.raw_display());
+            let string = xlib_function!(self.xlib_handle(), XDisplayString(self.raw_display()));
             CStr::from_ptr(string)
         }
     }
 
     /// Returns `None` if big requests extension is not supported.
     pub fn extended_max_request_size(&self) -> Option<c_long> {
-        let size = unsafe { xlib::XExtendedMaxRequestSize(self.raw_display()) };
+        let size = unsafe { xlib_function!(self.xlib_handle(), XExtendedMaxRequestSize(self.raw_display())) };
 
         if size == 0 {
             None
@@ -112,50 +116,50 @@ impl Display {
     }
 
     pub fn max_request_size(&self) -> c_long {
-        unsafe { xlib::XMaxRequestSize(self.raw_display()) }
+        unsafe { xlib_function!(self.xlib_handle(), XMaxRequestSize(self.raw_display())) }
     }
 
     pub fn last_known_request_processed(&self) -> c_ulong {
-        unsafe { xlib::XLastKnownRequestProcessed(self.raw_display()) }
+        unsafe { xlib_function!(self.xlib_handle(), XLastKnownRequestProcessed(self.raw_display())) }
     }
 
     pub fn next_request(&self) -> c_ulong {
-        unsafe { xlib::XNextRequest(self.raw_display()) }
+        unsafe { xlib_function!(self.xlib_handle(), XNextRequest(self.raw_display())) }
     }
 
     pub fn protocol_version(&self) -> c_int {
-        unsafe { xlib::XProtocolVersion(self.raw_display()) }
+        unsafe { xlib_function!(self.xlib_handle(), XProtocolVersion(self.raw_display())) }
     }
 
     pub fn protocol_revision(&self) -> c_int {
-        unsafe { xlib::XProtocolRevision(self.raw_display()) }
+        unsafe { xlib_function!(self.xlib_handle(), XProtocolRevision(self.raw_display())) }
     }
 
     /// Number of events in the event queue.
     pub fn events_queued(&self, mode: EventsQueuedMode) -> c_int {
-        unsafe { xlib::XEventsQueued(self.raw_display(), mode as c_int) }
+        unsafe { xlib_function!(self.xlib_handle(), XEventsQueued(self.raw_display(), mode as c_int)) }
     }
 
     pub fn screen_count(&self) -> c_int {
-        unsafe { xlib::XScreenCount(self.raw_display()) }
+        unsafe { xlib_function!(self.xlib_handle(), XScreenCount(self.raw_display())) }
     }
 
     pub fn server_vendor(&self) -> &CStr {
         unsafe {
-            let string = xlib::XServerVendor(self.raw_display());
+            let string = xlib_function!(self.xlib_handle(), XServerVendor(self.raw_display()));
             CStr::from_ptr(string)
         }
     }
 
     pub fn vendor_release(&self) -> c_int {
-        unsafe { xlib::XVendorRelease(self.raw_display()) }
+        unsafe { xlib_function!(self.xlib_handle(), XVendorRelease(self.raw_display())) }
     }
 
     // TODO: section "Image Format Functions and Macros" from xlib manual
 
     pub fn send_no_op_request(&self) {
         unsafe {
-            xlib::XNoOp(self.raw_display());
+            xlib_function!(self.xlib_handle(), XNoOp(self.raw_display()));
         }
     }
 
@@ -165,13 +169,13 @@ impl Display {
 
     pub fn flush_output_buffer(&self) {
         unsafe {
-            xlib::XFlush(self.raw_display());
+            xlib_function!(self.xlib_handle(), XFlush(self.raw_display()));
         }
     }
 
     pub fn sync(&self) {
         unsafe {
-            xlib::XSync(self.raw_display(), xlib::False);
+            xlib_function!(self.xlib_handle(), XSync(self.raw_display(), xlib::False));
         }
     }
 
@@ -192,7 +196,7 @@ impl Display {
     /// Blocks until event is received.
     pub fn read_event_blocking<'a>(&mut self, event_buffer: &'a mut EventBuffer) -> RawEvent<'a> {
         unsafe {
-            xlib::XNextEvent(self.raw_display(), event_buffer.event_mut_ptr());
+            xlib_function!(self.xlib_handle(), XNextEvent(self.raw_display(), event_buffer.event_mut_ptr()));
         }
 
         RawEvent::new(event_buffer)
@@ -213,7 +217,7 @@ impl Display {
         event_creator: &mut T,
     ) -> Result<(), ()> {
         send_event(
-            self.raw_display(),
+            self.display_handle(),
             window_id,
             propagate,
             event_mask,
