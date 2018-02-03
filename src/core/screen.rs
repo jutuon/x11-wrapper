@@ -27,7 +27,7 @@ impl Screen {
         self.raw_screen
     }
 
-    fn xlib_handle(&self) -> &XlibHandle {
+    pub fn xlib_handle(&self) -> &XlibHandle {
         self.display_handle.xlib_handle()
     }
 

@@ -98,7 +98,7 @@ impl Text {
 
     pub(crate) fn xlib_text_property_to_string_list(
         mut text_property: xlib::XTextProperty,
-        xlib_handle: &XlibHandle,
+        _xlib_handle: &XlibHandle,
         raw_display: *mut xlib::Display,
     ) -> Result<Vec<String>, TextError<Vec<String>>> {
         let mut text_list: *mut *mut c_char = ptr::null_mut();
@@ -107,7 +107,7 @@ impl Text {
 
         let result = unsafe {
             xlib_function!(
-                xlib_handle,
+                _xlib_handle,
                 Xutf8TextPropertyToTextList(
                     raw_display,
                     &mut text_property,
@@ -141,7 +141,7 @@ impl Text {
         if text_count < 0 {
             unsafe {
                 xlib_function!(
-                    xlib_handle,
+                    _xlib_handle,
                     XFreeStringList(text_list)
                 );
             }
@@ -174,7 +174,7 @@ impl Text {
 
         unsafe {
             xlib_function!(
-                xlib_handle,
+                _xlib_handle,
                 XFreeStringList(text_list)
             );
         }

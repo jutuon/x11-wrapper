@@ -71,11 +71,11 @@ impl Display {
         })
     }
 
-    pub(crate) fn display_handle(&self) -> &Arc<DisplayHandle> {
+    pub fn display_handle(&self) -> &Arc<DisplayHandle> {
         &self.display_handle
     }
 
-    pub(crate) fn xlib_handle(&self) -> &XlibHandle {
+    pub fn xlib_handle(&self) -> &XlibHandle {
         self.display_handle().xlib_handle()
     }
 
