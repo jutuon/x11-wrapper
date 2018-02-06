@@ -101,9 +101,11 @@ impl Display {
     }
 
     // TODO: Implement XScreenOfDisplay
+    /*
     pub fn screen_of_display(&self) {
         unimplemented!()
     }
+    */
 
     /// XDisplayString
     pub fn display_string(&self) -> &CStr {

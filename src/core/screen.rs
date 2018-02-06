@@ -101,9 +101,11 @@ impl Screen {
     }
 
     // TODO: implement XEventMaskOfScreen
+    /*
     pub fn event_mask(&self) {
         unimplemented!()
     }
+    */
 
     /// XScreenNumberOfScreen
     pub fn screen_number(&self) -> c_int {
