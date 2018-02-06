@@ -1,4 +1,6 @@
 //! Extended Window Manager Hints 1.3 properties.
+//!
+//! [EWMH 1.3 documentation](https://specifications.freedesktop.org/wm-spec/wm-spec-1.3.html)
 
 use std::os::raw::c_long;
 

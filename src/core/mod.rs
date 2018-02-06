@@ -1,4 +1,6 @@
 //! Core Xlib functionality
+//!
+//! [Xlib documentation](https://www.x.org/releases/X11R7.7/doc/libX11/libX11/libX11.html)
 
 pub mod window;
 pub mod color;

@@ -1,5 +1,7 @@
 
 //! Inter-Client Communication Conventions Manual 2.0 properties
+//!
+//! [ICCCM 2.0 documentation](https://www.x.org/releases/X11R7.7/doc/xorg-docs/icccm/icccm.html)
 
 use std::os::raw::{c_int, c_void, c_long};
 use std::marker::PhantomData;
