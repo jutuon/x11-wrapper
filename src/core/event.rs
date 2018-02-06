@@ -294,6 +294,8 @@ impl EventCreator for ClientMessageEventCreator {
 }
 
 /// See documentation of `Display::send_event`.
+///
+/// XSendEvent
 pub(crate) fn send_event<T: EventCreator>(
     display_handle: &Arc<DisplayHandle>,
     window_id: xlib::Window,

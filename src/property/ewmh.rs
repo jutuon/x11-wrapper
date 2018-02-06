@@ -19,6 +19,8 @@ pub struct NetWmStateHandler {
 
 impl NetWmStateHandler {
     /// Returns error if querying atom_name fails.
+    ///
+    /// XInternAtom
     pub fn new(display: &Display) -> Result<Self, ()> {
         let fullscreen_name = AtomName::new("_NET_WM_STATE_FULLSCREEN".to_string())
             .map_err(|_| ())

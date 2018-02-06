@@ -36,6 +36,8 @@ pub struct CreatedColormap {
 
 impl CreatedColormap {
     /// Returns error if `Screen` does not support `Visual`.
+    ///
+    /// XCreateColormap - BadAlloc, BadMatch, BadValue, BadWindow
     pub(crate) fn create(
         display_handle: Arc<DisplayHandle>,
         screen: &Screen,
@@ -78,6 +80,7 @@ impl ColormapID for CreatedColormap {
 }
 
 impl Drop for CreatedColormap {
+    /// XFreeColormap - BadColor
     fn drop(&mut self) {
         // TODO: check error
 

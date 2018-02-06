@@ -39,6 +39,7 @@ const X_LOCALE_NOT_SUPPORTED: c_int = -2;
 const X_CONVERTER_NOT_FOUND: c_int = -3;
 
 impl Text {
+    /// Xutf8TextListToTextProperty
     pub fn new(display: &Display, text: String) -> Result<Self, TextError<Self>> {
         let c_string = CString::new(text).map_err(|_| TextError::NulError)?;
 
@@ -92,10 +93,13 @@ impl Text {
 
 
     /// Converts CString to String with method `to_string_lossy`.
+    ///
+    /// Xutf8TextPropertyToTextList, XFreeStringList
     pub fn to_string_list(&mut self) -> Result<Vec<String>, TextError<Vec<String>>> {
         Self::xlib_text_property_to_string_list(self.text_property, self.display_handle.xlib_handle(), self.display_handle.raw_display())
     }
 
+    /// Xutf8TextPropertyToTextList, XFreeStringList
     pub(crate) fn xlib_text_property_to_string_list(
         mut text_property: xlib::XTextProperty,
         _xlib_handle: &XlibHandle,
@@ -184,6 +188,7 @@ impl Text {
 }
 
 impl Drop for Text {
+    /// XFree
     fn drop(&mut self) {
         unsafe {
             xlib_function!(
@@ -240,6 +245,8 @@ impl Atom {
     ///
     /// If `only_if_exists` is `False`, new atom will be created if there isn't an
     /// atom matching `atom_name`.
+    ///
+    /// XInternAtom
     pub fn new(
         display: &Display,
         mut atom_name: AtomName,
@@ -265,6 +272,7 @@ impl Atom {
         }
     }
 
+    /// XGetAtomName, XFree
     pub fn get_name(&self, display: &Display) -> Result<String, ()> {
         let text_ptr = unsafe {
             xlib_function!(

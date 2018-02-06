@@ -90,6 +90,8 @@ impl InputOutputWindowBuilder<BuildTopLevelWindow> {
     ///
     /// Returns error if `Screen` does not support `Visual` or `Screen`'s root window
     /// is not found.
+    ///
+    /// XCreateColormap - BadAlloc, BadMatch, BadValue, BadWindow
     pub fn new<T: Into<WindowVisual>>(
         screen: &Screen,
         window_visual: T,
@@ -118,6 +120,7 @@ impl InputOutputWindowBuilder<BuildTopLevelWindow> {
         Ok(builder)
     }
 
+    /// XCreateWindow
     pub fn build_input_output_window(mut self) -> Result<TopLevelInputOutputWindow, ()> {
         let (visual, depth, colormap) =
             if let Some((colormap, visual)) = self.colormap_and_visual {
@@ -176,6 +179,7 @@ pub struct TopLevelInputOutputWindow {
 }
 
 impl TopLevelInputOutputWindow {
+    /// XMapWindow
     pub fn map_window(self) -> Self {
         // TODO: check errors
 
@@ -189,6 +193,7 @@ impl TopLevelInputOutputWindow {
         self
     }
 
+    /// XUnmapWindow
     pub fn unmap_window(self) -> Self {
         unsafe {
             xlib_function!(
@@ -200,6 +205,7 @@ impl TopLevelInputOutputWindow {
         self
     }
 
+    /// XIconifyWindow
     pub fn iconify(&mut self, screen: &Screen) -> Result<(), ()> {
         unsafe {
             let status = xlib_function!(
@@ -219,6 +225,7 @@ impl TopLevelInputOutputWindow {
         }
     }
 
+    /// XWithdrawWindow
     pub fn withdraw(&mut self, screen: &Screen) -> Result<(), ()> {
         unsafe {
             let status = xlib_function!(
@@ -240,6 +247,7 @@ impl TopLevelInputOutputWindow {
 }
 
 impl Drop for TopLevelInputOutputWindow {
+    /// XDestroyWindow - BadWindow
     fn drop(&mut self) {
         unsafe {
             // TODO: check errors

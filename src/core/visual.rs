@@ -13,6 +13,7 @@ pub struct Visual {
 }
 
 impl Visual {
+    /// XGetVisualInfo, XFree
     pub(crate) fn new(
         display_handle: Arc<DisplayHandle>,
         visual_id: xlib::VisualID,

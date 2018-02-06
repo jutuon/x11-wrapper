@@ -9,12 +9,13 @@
 //! running any destructors.
 //!
 //! Xlib function calls may generate errors that may occur some time after that specific
-//! function call. This happens because Xlib does buffering for X11 requests.
-//! Errors for functions which may produce errors are documented. With function `check_errors`
+//! function call. This happens because Xlib does buffering for X11 requests. With function `check_errors`
 //! you can check if an Xlib error is occurred. However this wrapper library prevents some
 //! errors related to wrong resource IDs, as resource ID is stored as private object attribute, but
 //! if some other X11 client will destroy that
 //! resource you will still get an error.
+//!
+//! TODO: Check which functions may make errors and document those errors.
 //!
 //! With running program with environment variable `_Xdebug` or calling a specific function, you can set
 //! Xlib to operate synchronously, so every Xlib function will wait an response from X11 server. This allows

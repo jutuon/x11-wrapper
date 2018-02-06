@@ -142,8 +142,10 @@ extern "C" fn protocol_error_handler(
     0
 }
 
+// TODO: Remove eprintln!() printing.
+// TODO: Move C data type checks to XlibHandle creation.
 
-
+/// XSetErrorHandler
 pub(crate) fn set_xlib_error_handler(_xlib_handle: &XlibHandle) {
     unsafe {
         xlib_function!(
@@ -159,6 +161,8 @@ pub(crate) fn set_xlib_error_handler(_xlib_handle: &XlibHandle) {
 /// There is only space for one error in the buffer. If there is
 /// already an error in the buffer and Xlib calls error handler
 /// function, the function will simply discard the new error.
+///
+/// XGetErrorText
 pub fn check_error(display: &Display) -> Option<ErrorEventAndText> {
     let mut buffer = ERROR_BUFFER.lock().unwrap();
     buffer.take().map(|error_event| {

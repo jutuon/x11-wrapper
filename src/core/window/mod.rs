@@ -91,6 +91,7 @@ impl ReconfigureWindow<TopLevelInputOutputWindow> {
         self.set_stack_mode(mode)
     }
 
+    /// XReconfigureWMWindow
     pub fn configure(mut self, screen: &Screen) -> Result<TopLevelInputOutputWindow, TopLevelInputOutputWindow> {
         let status = unsafe {
             xlib_function!(
@@ -281,6 +282,9 @@ pub trait WindowProperties: Window {
     ///
     /// ### Arguments
     /// `is_deleted` - If true, the specified property will be deleted if there is no errors.
+    ///
+    /// ### Xlib functions
+    /// XGetWindowProperty, XFree
     fn get_property(
         &self,
         property_name: Atom,
@@ -410,6 +414,7 @@ pub trait WindowProperties: Window {
         result
     }
 
+    /// XListProperties, XFree
     fn list_properties(&self) -> AtomList {
         let mut atom_list = AtomList::new();
 
@@ -454,6 +459,7 @@ pub trait WindowProperties: Window {
         atom_list
     }
 
+    /// XDeleteProperty
     fn delete_property(&self, property_name: Atom) {
         unsafe {
             xlib_function!(
@@ -472,6 +478,8 @@ pub trait WindowProperties: Window {
     /// and can vary dynamically depending on the amount of
     /// memory the server has available. (If there is insufficient
     /// space, a BadAlloc error results.) "
+    ///
+    /// XChangeProperty
     fn change_property(
         &self,
         mut property: Property,
@@ -498,6 +506,8 @@ pub trait WindowProperties: Window {
     }
 
     /// Set properties with type `TEXT`.
+    ///
+    /// XSetTextProperty
     fn set_text_property<T: Into<Atom>>(self, mut text: Text, property: T) -> Self {
         unsafe {
             xlib_function!(
@@ -515,6 +525,8 @@ pub trait WindowProperties: Window {
     }
 
     /// Get properties with type `TEXT`.
+    ///
+    /// XGetTextProperty
     fn get_text_property<T: Into<Atom>>(&self, property: T) -> Result<Vec<String>, TextPropertyError> {
         let mut text_property = unsafe {
             mem::zeroed()
@@ -609,18 +621,22 @@ impl PropertyType {
 
 pub trait Selection: Window {
     /// Set this window to be selection owner. Sets last-change time to current time.
+    ///
+    /// XSetSelectionOwner
     fn set_owner(&self, selection: Atom) {
         unsafe {
             xlib_function!(self.xlib_handle(), XSetSelectionOwner(self.raw_display(), selection.atom_id(), self.window_id(), xlib::CurrentTime));
         }
     }
 
+    /// XGetSelectionOwner
     fn get_owner_window_id(&self, selection: Atom) -> xlib::Window {
         unsafe {
             xlib_function!(self.xlib_handle(), XGetSelectionOwner(self.raw_display(), selection.atom_id()))
         }
     }
 
+    /// XConvertSelection
     fn request_selection_conversion(&self, selection: Atom, target: Atom, property: Atom) {
         unsafe {
             xlib_function!(

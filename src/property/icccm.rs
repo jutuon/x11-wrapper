@@ -19,6 +19,8 @@ impl TopLevelInputOutputWindow {
     ///
     /// Returns error if there is no enough memory to
     /// allocate `xlib::XWMHints` structure.
+    ///
+    /// XAllocWMHints
     pub fn start_configuring_hints(self) -> Result<HintsConfigurator, Self> {
         HintsConfigurator::new(self)
     }
@@ -27,11 +29,15 @@ impl TopLevelInputOutputWindow {
     ///
     /// Returns error if there is no enough memory to
     /// allocate `xlib::XSizeHints` structure.
+    ///
+    /// XAllocSizeHints
     pub fn start_configuring_normal_hints(self) -> Result<NormalHintsConfigurator, Self> {
         NormalHintsConfigurator::new(self)
     }
 
     /// Set `WM_PROTOCOLS` property.
+    ///
+    /// XSetWMProtocols
     pub fn set_protocols(self, mut atom_list: AtomList) -> Result<Self, Self> {
         let status = unsafe {
             xlib_function!(
@@ -53,6 +59,8 @@ impl TopLevelInputOutputWindow {
     }
 
     /// Set `WM_TRANSIENT_FOR` property.
+    ///
+    /// XSetTransientForHint
     pub fn set_transient_for_hint(self, window_id: xlib::Window) -> Self {
         unsafe {
             xlib_function!(self.xlib_handle(), XSetTransientForHint(self.raw_display(), self.window_id(), window_id));
@@ -185,6 +193,8 @@ struct Hints {
 impl Hints {
     /// Returns error if there is no enough memory to
     /// allocate `xlib::XWMHints` structure.
+    ///
+    /// XAllocWMHints
     fn new(xlib_handle: &XlibHandle) -> Result<Self, ()> {
         let wm_hints_ptr = unsafe { xlib_function!(xlib_handle, XAllocWMHints()) };
 
@@ -205,6 +215,7 @@ impl Hints {
 }
 
 impl Drop for Hints {
+    /// XFree
     fn drop(&mut self) {
         unsafe {
             xlib_function!(self._xlib_handle, XFree(self.wm_hints_ptr as *mut c_void));
@@ -243,6 +254,8 @@ pub struct HintsConfigurator {
 impl HintsConfigurator {
     /// Returns error if there is no enough memory to
     /// allocate `xlib::XWMHints` structure.
+    ///
+    /// XAllocSizeHints
     fn new(window: TopLevelInputOutputWindow) -> Result<Self, TopLevelInputOutputWindow> {
         let hints = match Hints::new(window.xlib_handle()) {
             Ok(hints) => hints,
@@ -362,6 +375,8 @@ struct SizeHints {
 impl SizeHints {
     /// Returns error if there is no enough memory to
     /// allocate `xlib::XSizeHints` structure.
+    ///
+    /// XAllocSizeHints
     fn new(xlib_handle: &XlibHandle) -> Result<Self, ()> {
         let size_hints_ptr = unsafe { xlib_function!(xlib_handle, XAllocSizeHints()) };
 
@@ -398,6 +413,8 @@ pub struct NormalHintsConfigurator {
 impl NormalHintsConfigurator {
     /// Returns error if there is no enough memory to
     /// allocate `xlib::XSizeHints` structure.
+    ///
+    /// XAllocSizeHints
     fn new(window: TopLevelInputOutputWindow) -> Result<Self, TopLevelInputOutputWindow> {
         let size_hints = match SizeHints::new(window.xlib_handle()) {
             Ok(hints) => hints,
@@ -476,6 +493,7 @@ impl NormalHintsConfigurator {
         self
     }
 
+    /// XSetWMNormalHints
     pub fn end(mut self) -> TopLevelInputOutputWindow {
         unsafe {
             xlib_function!(

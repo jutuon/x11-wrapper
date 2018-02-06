@@ -21,6 +21,8 @@ impl Protocols {
     }
 
     /// Returns error if `Atom` creation failed.
+    ///
+    /// XInternAtom
     pub fn enable_delete_window(
         &mut self,
         display: &Display,

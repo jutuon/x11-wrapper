@@ -32,6 +32,8 @@ pub enum XlibInitError {
     XInitThreadsError,
 }
 
+/// Stores Xlib functions when crate feature
+/// `runtime-linking` is enabled.
 #[cfg(not(feature = "runtime-linking"))]
 #[derive(Clone)]
 pub struct XlibHandle;
@@ -66,6 +68,10 @@ impl XlibHandle {
         })
     }
 
+    /// Initialize Xlib. This function will return error if
+    /// `XlibHandle` is already created.
+    ///
+    /// XInitThreads, XSetErrorHandler
     pub fn initialize_xlib() -> Result<Self, XlibInitError> {
         let mut guard = INIT_FLAG.lock().unwrap();
 
@@ -91,6 +97,8 @@ impl XlibHandle {
     }
 
     /// Create new connection to X11 server.
+    ///
+    /// XOpenDisplay
     pub fn create_display(&self) -> Result<Display, ()> {
         Display::new(self.clone())
     }
