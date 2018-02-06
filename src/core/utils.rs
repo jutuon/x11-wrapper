@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use x11::xlib;
 
-use super::display::{DisplayHandle, Display};
+use super::display::{Display, DisplayHandle};
 use super::XlibHandle;
 
 pub const XLIB_NONE: xlib::XID = 0;
@@ -61,16 +61,16 @@ impl Text {
         };
 
         match status {
-            0 => {
-                Ok(Self {
-                    display_handle: display.display_handle().clone(),
-                    text_property
-                })
-            }
-            X_NO_MEMORY => { // -1
+            0 => Ok(Self {
+                display_handle: display.display_handle().clone(),
+                text_property,
+            }),
+            X_NO_MEMORY => {
+                // -1
                 Err(TextError::NoMemory)
             }
-            X_LOCALE_NOT_SUPPORTED => { // -2
+            X_LOCALE_NOT_SUPPORTED => {
+                // -2
                 Err(TextError::LocaleNotSupported)
             }
             value if value < -2 => {
@@ -80,7 +80,7 @@ impl Text {
             value => {
                 let text = Self {
                     display_handle: display.display_handle().clone(),
-                    text_property
+                    text_property,
                 };
                 Err(TextError::UnconvertedCharacters(value, text))
             }
@@ -91,12 +91,15 @@ impl Text {
         &mut self.text_property
     }
 
-
     /// Converts CString to String with method `to_string_lossy`.
     ///
     /// Xutf8TextPropertyToTextList, XFreeStringList
     pub fn to_string_list(&mut self) -> Result<Vec<String>, TextError<Vec<String>>> {
-        Self::xlib_text_property_to_string_list(self.text_property, self.display_handle.xlib_handle(), self.display_handle.raw_display())
+        Self::xlib_text_property_to_string_list(
+            self.text_property,
+            self.display_handle.xlib_handle(),
+            self.display_handle.raw_display(),
+        )
     }
 
     /// Xutf8TextPropertyToTextList, XFreeStringList
@@ -122,37 +125,36 @@ impl Text {
         };
 
         match result {
-            X_NO_MEMORY => { // -1
-                return Err(TextError::NoMemory)
+            X_NO_MEMORY => {
+                // -1
+                return Err(TextError::NoMemory);
             }
-            X_LOCALE_NOT_SUPPORTED => { // -2
-                return Err(TextError::LocaleNotSupported)
+            X_LOCALE_NOT_SUPPORTED => {
+                // -2
+                return Err(TextError::LocaleNotSupported);
             }
-            X_CONVERTER_NOT_FOUND => { // -3
-                return Err(TextError::ConverterNotFound)
+            X_CONVERTER_NOT_FOUND => {
+                // -3
+                return Err(TextError::ConverterNotFound);
             }
             value if value < -3 => {
                 // TODO: possible memory leak?
-                return Err(TextError::UnknownError)
+                return Err(TextError::UnknownError);
             }
-            _ => ()
+            _ => (),
         }
 
         if text_list.is_null() {
-            return Err(TextError::XlibReturnedNullPointer)
+            return Err(TextError::XlibReturnedNullPointer);
         }
 
         if text_count < 0 {
             unsafe {
-                xlib_function!(
-                    _xlib_handle,
-                    XFreeStringList(text_list)
-                );
+                xlib_function!(_xlib_handle, XFreeStringList(text_list));
             }
 
-            return Err(TextError::XlibReturnedNegativeTextCount)
+            return Err(TextError::XlibReturnedNegativeTextCount);
         }
-
 
         let texts: &[*mut c_char] = unsafe {
             // TODO: check that c_int fits in usize
@@ -162,13 +164,10 @@ impl Text {
         let mut string_vec = vec![];
 
         for text_ptr in texts {
-            let c_string = unsafe {
-                CString::from_raw(*text_ptr)
-            };
+            let c_string = unsafe { CString::from_raw(*text_ptr) };
 
             string_vec.push(c_string.to_string_lossy().to_string());
         }
-
 
         let final_result = if result == 0 {
             Ok(string_vec)
@@ -177,10 +176,7 @@ impl Text {
         };
 
         unsafe {
-            xlib_function!(
-                _xlib_handle,
-                XFreeStringList(text_list)
-            );
+            xlib_function!(_xlib_handle, XFreeStringList(text_list));
         }
 
         final_result
@@ -290,10 +286,7 @@ impl Atom {
             };
 
             unsafe {
-                xlib_function!(
-                    display.xlib_handle(),
-                    XFree(text_ptr as *mut c_void)
-                );
+                xlib_function!(display.xlib_handle(), XFree(text_ptr as *mut c_void));
             }
 
             Ok(name)
@@ -306,9 +299,7 @@ impl Atom {
 
     /// This does not check if atom id is zero
     pub(crate) fn from_raw(atom_id: xlib::Atom) -> Atom {
-        Self {
-            atom_id
-        }
+        Self { atom_id }
     }
 }
 

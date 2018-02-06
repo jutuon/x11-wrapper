@@ -6,9 +6,9 @@ use std::sync::Arc;
 use x11::xlib;
 
 use super::attribute::*;
-use super::{Window, WindowProperties, Selection};
+use super::{Selection, Window, WindowProperties};
 
-use core::display::{DisplayHandle};
+use core::display::DisplayHandle;
 use core::color::{ColormapID, CreatedColormap};
 use core::visual::Visual;
 use core::screen::Screen;
@@ -29,7 +29,7 @@ pub struct InputOutputWindowBuilder<T> {
     builder: T,
 }
 
-impl <T> InputOutputWindowBuilder<T> {
+impl<T> InputOutputWindowBuilder<T> {
     /// Default values: x = 0, y = 0
     pub fn set_x_y(mut self, x: c_int, y: c_int) -> Self {
         self.x = x;
@@ -57,7 +57,7 @@ impl <T> InputOutputWindowBuilder<T> {
     }
 }
 
-impl <T> GetAndSetAttributes for InputOutputWindowBuilder<T> {
+impl<T> GetAndSetAttributes for InputOutputWindowBuilder<T> {
     fn attributes(&self) -> &WindowAttributes {
         &self.attributes
     }
@@ -92,10 +92,7 @@ impl InputOutputWindowBuilder<BuildTopLevelWindow> {
     /// is not found.
     ///
     /// XCreateColormap - BadAlloc, BadMatch, BadValue, BadWindow
-    pub fn new<T: Into<WindowVisual>>(
-        screen: &Screen,
-        window_visual: T,
-    ) -> Result<Self, ()> {
+    pub fn new<T: Into<WindowVisual>>(screen: &Screen, window_visual: T) -> Result<Self, ()> {
         let parent_window_id = screen.root_window_id().ok_or(())?;
 
         let mut builder = Self {
@@ -111,7 +108,8 @@ impl InputOutputWindowBuilder<BuildTopLevelWindow> {
         };
 
         if let WindowVisual::Visual(visual) = window_visual.into() {
-            let created_colormap = CreatedColormap::create(screen.display_handle().clone(), screen, &visual)?;
+            let created_colormap =
+                CreatedColormap::create(screen.display_handle().clone(), screen, &visual)?;
 
             builder = builder.set_colormap(Colormap::Colormap(created_colormap.id()));
             builder.colormap_and_visual = Some((created_colormap, visual));
@@ -122,20 +120,15 @@ impl InputOutputWindowBuilder<BuildTopLevelWindow> {
 
     /// XCreateWindow
     pub fn build_input_output_window(mut self) -> Result<TopLevelInputOutputWindow, ()> {
-        let (visual, depth, colormap) =
-            if let Some((colormap, visual)) = self.colormap_and_visual {
-                (
-                    visual.raw_visual(),
-                    visual.depth(),
-                    Some(colormap),
-                )
-            } else {
-                (
-                    xlib::CopyFromParent as *mut xlib::Visual,
-                    xlib::CopyFromParent,
-                    None,
-                )
-            };
+        let (visual, depth, colormap) = if let Some((colormap, visual)) = self.colormap_and_visual {
+            (visual.raw_visual(), visual.depth(), Some(colormap))
+        } else {
+            (
+                xlib::CopyFromParent as *mut xlib::Visual,
+                xlib::CopyFromParent,
+                None,
+            )
+        };
 
         let window_id = unsafe {
             xlib_function!(

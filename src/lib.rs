@@ -1,4 +1,3 @@
-
 //! This library is a safe wrapper over Xlib and related X11 protocol extension libraries.
 //!
 //! # Read this before using this library.
@@ -31,7 +30,6 @@
 //! memory leak which is [x11_dl issue](https://github.com/Daggerbot/x11-rs/issues/67), but
 //! that will not be a major problem as this wrapper library allows to load the libraries only once.
 
-
 #[cfg(not(feature = "runtime-linking"))]
 pub extern crate x11;
 
@@ -60,7 +58,7 @@ extern crate bitflags;
 #[macro_use]
 extern crate lazy_static;
 
-#[cfg_attr(not(feature = "runtime-linking"), link(name="X11"))]
+#[cfg_attr(not(feature = "runtime-linking"), link(name = "X11"))]
 extern "C" {}
 
 pub mod core;

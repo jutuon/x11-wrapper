@@ -20,7 +20,10 @@ pub struct DisplayHandle {
 }
 
 impl DisplayHandle {
-    pub(crate) fn new_in_arc(raw_display: *mut xlib::Display, xlib_handle: XlibHandle) -> Arc<DisplayHandle> {
+    pub(crate) fn new_in_arc(
+        raw_display: *mut xlib::Display,
+        xlib_handle: XlibHandle,
+    ) -> Arc<DisplayHandle> {
         Arc::new(DisplayHandle {
             xlib_handle,
             raw_display,
@@ -60,12 +63,7 @@ impl Display {
     pub(crate) fn new(xlib_handle: XlibHandle) -> Result<Self, ()> {
         // TODO: display_name string support
 
-        let raw_display = unsafe {
-            xlib_function!(
-                xlib_handle,
-                XOpenDisplay(ptr::null())
-            )
-        };
+        let raw_display = unsafe { xlib_function!(xlib_handle, XOpenDisplay(ptr::null())) };
 
         if raw_display.is_null() {
             return Err(());
@@ -95,7 +93,12 @@ impl Display {
 
     /// XDefaultScreenOfDisplay
     pub fn default_screen(&self) -> Screen {
-        let screen = unsafe { xlib_function!(self.xlib_handle(), XDefaultScreenOfDisplay(self.raw_display())) };
+        let screen = unsafe {
+            xlib_function!(
+                self.xlib_handle(),
+                XDefaultScreenOfDisplay(self.raw_display())
+            )
+        };
 
         Screen::new(self.display_handle.clone(), screen)
     }
@@ -119,7 +122,12 @@ impl Display {
     ///
     /// XExtendedMaxRequestSize
     pub fn extended_max_request_size(&self) -> Option<c_long> {
-        let size = unsafe { xlib_function!(self.xlib_handle(), XExtendedMaxRequestSize(self.raw_display())) };
+        let size = unsafe {
+            xlib_function!(
+                self.xlib_handle(),
+                XExtendedMaxRequestSize(self.raw_display())
+            )
+        };
 
         if size == 0 {
             None
@@ -135,7 +143,12 @@ impl Display {
 
     /// XLastKnownRequestProcessed
     pub fn last_known_request_processed(&self) -> c_ulong {
-        unsafe { xlib_function!(self.xlib_handle(), XLastKnownRequestProcessed(self.raw_display())) }
+        unsafe {
+            xlib_function!(
+                self.xlib_handle(),
+                XLastKnownRequestProcessed(self.raw_display())
+            )
+        }
     }
 
     /// XNextRequest
@@ -157,7 +170,12 @@ impl Display {
     ///
     /// XEventsQueued
     pub fn events_queued(&self, mode: EventsQueuedMode) -> c_int {
-        unsafe { xlib_function!(self.xlib_handle(), XEventsQueued(self.raw_display(), mode as c_int)) }
+        unsafe {
+            xlib_function!(
+                self.xlib_handle(),
+                XEventsQueued(self.raw_display(), mode as c_int)
+            )
+        }
     }
 
     /// XScreenCount
@@ -191,7 +209,6 @@ impl Display {
     pub fn visual_from_id(&self, visual_id: xlib::VisualID) -> Option<Visual> {
         Visual::new(self.display_handle.clone(), visual_id)
     }
-
 
     /// XFlush
     pub fn flush_output_buffer(&self) {
@@ -228,7 +245,10 @@ impl Display {
     /// XNextEvent
     pub fn read_event_blocking<'a>(&mut self, event_buffer: &'a mut EventBuffer) -> RawEvent<'a> {
         unsafe {
-            xlib_function!(self.xlib_handle(), XNextEvent(self.raw_display(), event_buffer.event_mut_ptr()));
+            xlib_function!(
+                self.xlib_handle(),
+                XNextEvent(self.raw_display(), event_buffer.event_mut_ptr())
+            );
         }
 
         RawEvent::new(event_buffer)

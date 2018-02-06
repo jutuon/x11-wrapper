@@ -1,9 +1,8 @@
-
 //! Xlib error handling
 
 use std::io;
 use std::io::Write;
-use std::os::raw::{c_int, c_ulong, c_uchar, c_char};
+use std::os::raw::{c_char, c_int, c_uchar, c_ulong};
 use std::sync::Mutex;
 use std::process;
 use std::mem;
@@ -116,7 +115,11 @@ extern "C" fn protocol_error_handler(
             // Abort the program because there shouldn't be any panics
             // happening when accessing error buffer mutex.
             let mut stderr = io::stderr();
-            let _ = write!(stderr, "x11_wrapper bug: error buffer mutex error {}", error);
+            let _ = write!(
+                stderr,
+                "x11_wrapper bug: error buffer mutex error {}",
+                error
+            );
 
             process::abort();
         }
@@ -148,10 +151,7 @@ extern "C" fn protocol_error_handler(
 /// XSetErrorHandler
 pub(crate) fn set_xlib_error_handler(_xlib_handle: &XlibHandle) {
     unsafe {
-        xlib_function!(
-            _xlib_handle,
-            XSetErrorHandler(Some(protocol_error_handler))
-        );
+        xlib_function!(_xlib_handle, XSetErrorHandler(Some(protocol_error_handler)));
     }
 }
 
@@ -205,7 +205,7 @@ pub fn check_error(display: &Display) -> Option<ErrorEventAndText> {
                 if *data == 0 {
                     zero_byte_index = i;
                 }
-            };
+            }
 
             let (text, _) = text_buffer.split_at(zero_byte_index);
 

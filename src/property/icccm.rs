@@ -1,17 +1,16 @@
-
 //! Inter-Client Communication Conventions Manual 2.0 properties
 //!
 //! [ICCCM 2.0 documentation](https://www.x.org/releases/X11R7.7/doc/xorg-docs/icccm/icccm.html)
 
-use std::os::raw::{c_int, c_void, c_long};
+use std::os::raw::{c_int, c_long, c_void};
 use std::marker::PhantomData;
 use std::ffi::CString;
 
 use x11::xlib;
 
 use core::window::input_output::TopLevelInputOutputWindow;
-use core::window::{Window, WindowProperties, PropertyData, Property, ChangePropertyMode};
-use core::utils::{AtomList, Atom, to_xlib_bool};
+use core::window::{ChangePropertyMode, Property, PropertyData, Window, WindowProperties};
+use core::utils::{to_xlib_bool, Atom, AtomList};
 use core::XlibHandle;
 
 impl TopLevelInputOutputWindow {
@@ -63,7 +62,10 @@ impl TopLevelInputOutputWindow {
     /// XSetTransientForHint
     pub fn set_transient_for_hint(self, window_id: xlib::Window) -> Self {
         unsafe {
-            xlib_function!(self.xlib_handle(), XSetTransientForHint(self.raw_display(), self.window_id(), window_id));
+            xlib_function!(
+                self.xlib_handle(),
+                XSetTransientForHint(self.raw_display(), self.window_id(), window_id)
+            );
         }
 
         self
@@ -78,22 +80,23 @@ impl TopLevelInputOutputWindow {
     /// Note that `instance_name` and `class_name` arguments' length is limited
     /// by property data size constraints. See documentation of
     /// `WindowProperty::change_property` for more information.
-    pub fn set_class(self, instance_name: String, class_name: String) -> Result<Self, SetClassPropertyError<Self>> {
-
-        fn check_string(text: &str) -> Result<(),()> {
+    pub fn set_class(
+        self,
+        instance_name: String,
+        class_name: String,
+    ) -> Result<Self, SetClassPropertyError<Self>> {
+        fn check_string(text: &str) -> Result<(), ()> {
             for c in text.chars() {
                 match c {
-                     'a'...'z' | 'A'...'Z' | '0'...'9' |
-                     ' ' | '-' | '_' => (),
+                    'a'...'z' | 'A'...'Z' | '0'...'9' | ' ' | '-' | '_' => (),
                     _ => return Err(()),
                 }
             }
             Ok(())
         }
 
-        if check_string(&instance_name).is_err() ||
-            check_string(&class_name).is_err() {
-                return Err(SetClassPropertyError::UnknownCharacter(self))
+        if check_string(&instance_name).is_err() || check_string(&class_name).is_err() {
+            return Err(SetClassPropertyError::UnknownCharacter(self));
         }
 
         // There shouldn't be any null bytes because
@@ -106,8 +109,12 @@ impl TopLevelInputOutputWindow {
             Atom::from_raw(xlib::XA_STRING),
         );
 
-        property_data.data_mut().extend_from_slice(c_instance_name.as_bytes_with_nul());
-        property_data.data_mut().extend_from_slice(c_class_name.as_bytes_with_nul());
+        property_data
+            .data_mut()
+            .extend_from_slice(c_instance_name.as_bytes_with_nul());
+        property_data
+            .data_mut()
+            .extend_from_slice(c_class_name.as_bytes_with_nul());
 
         let property = Property::Char(property_data);
 
@@ -118,7 +125,8 @@ impl TopLevelInputOutputWindow {
     }
 
     /// Set `WM_ICON_SIZE` property.
-    pub fn set_icon_size(self,
+    pub fn set_icon_size(
+        self,
         min_width: i32,
         min_height: i32,
         max_width: i32,
@@ -144,7 +152,8 @@ impl TopLevelInputOutputWindow {
 
         // This should not panic because change_property function
         // returns error only if there is too many data items in property.
-        self.change_property(property, ChangePropertyMode::Replace).unwrap();
+        self.change_property(property, ChangePropertyMode::Replace)
+            .unwrap();
 
         self
     }
@@ -262,13 +271,11 @@ impl HintsConfigurator {
             Err(()) => return Err(window),
         };
 
-        Ok(
-            Self {
-                window,
-                hints,
-                window_hints_flags: WindowHintsFlags::empty(),
-            }
-        )
+        Ok(Self {
+            window,
+            hints,
+            window_hints_flags: WindowHintsFlags::empty(),
+        })
     }
 
     pub fn set_input(mut self, value: bool) -> Self {
@@ -298,7 +305,6 @@ impl HintsConfigurator {
         self
     }
 
-
     pub fn set_icon_window(mut self, window_id: xlib::Window) -> Self {
         unsafe {
             (*self.hints.wm_hints_ptr).icon_window = window_id;
@@ -307,7 +313,6 @@ impl HintsConfigurator {
 
         self
     }
-
 
     pub fn set_icon_position(mut self, x: c_int, y: c_int) -> Self {
         unsafe {
@@ -349,7 +354,7 @@ impl HintsConfigurator {
 
     pub fn end(mut self) -> TopLevelInputOutputWindow {
         unsafe {
-             (*self.hints.wm_hints_ptr).flags = self.window_hints_flags.bits();
+            (*self.hints.wm_hints_ptr).flags = self.window_hints_flags.bits();
 
             xlib_function!(
                 self.window.xlib_handle(),

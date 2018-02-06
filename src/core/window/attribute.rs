@@ -1,12 +1,11 @@
-
 //! Window attributes
 
-use std::os::raw::{c_int, c_ulong, c_long};
+use std::os::raw::{c_int, c_long, c_ulong};
 
 use x11::xlib;
 
 use core::event::EventMask;
-use core::utils::{XLIB_NONE};
+use core::utils::XLIB_NONE;
 
 #[derive(Debug)]
 pub struct WindowAttributes {
@@ -25,7 +24,6 @@ impl WindowAttributes {
 }
 
 impl Default for WindowAttributes {
-
     /// Xlib defaults
     ///
     /// ```rust
@@ -51,27 +49,26 @@ impl Default for WindowAttributes {
     fn default() -> Self {
         Self {
             attributes: xlib::XSetWindowAttributes {
-                 background_pixmap: XLIB_NONE,
-                 background_pixel: 0, // default undefined
-                 border_pixmap: xlib::CopyFromParent as xlib::Pixmap,
-                 border_pixel: 0, // default undefined
-                 bit_gravity: xlib::ForgetGravity,
-                 win_gravity: xlib::NorthWestGravity,
-                 backing_store: xlib::NotUseful,
-                 backing_planes: c_ulong::max_value(),
-                 backing_pixel: 0,
-                 save_under: xlib::False,
-                 event_mask: 0,
-                 do_not_propagate_mask: 0,
-                 override_redirect: xlib::False,
-                 colormap: xlib::CopyFromParent as xlib::Colormap,
-                 cursor: XLIB_NONE,
-             },
+                background_pixmap: XLIB_NONE,
+                background_pixel: 0, // default undefined
+                border_pixmap: xlib::CopyFromParent as xlib::Pixmap,
+                border_pixel: 0, // default undefined
+                bit_gravity: xlib::ForgetGravity,
+                win_gravity: xlib::NorthWestGravity,
+                backing_store: xlib::NotUseful,
+                backing_planes: c_ulong::max_value(),
+                backing_pixel: 0,
+                save_under: xlib::False,
+                event_mask: 0,
+                do_not_propagate_mask: 0,
+                override_redirect: xlib::False,
+                colormap: xlib::CopyFromParent as xlib::Colormap,
+                cursor: XLIB_NONE,
+            },
             selected_attributes: AttributeMask::empty(),
         }
     }
 }
-
 
 bitflags! {
     pub(crate) struct AttributeMask: c_ulong {
@@ -119,7 +116,6 @@ macro_rules! impl_conversion {
 
 impl_conversion!(c_ulong, c_int);
 
-
 macro_rules! attribute_functions {
     ( $attribute_field: tt: $attribute_type: ty, $setter_name: tt, $attribute_mask: expr) => {
         fn $attribute_field(&self) -> $attribute_type {
@@ -166,14 +162,11 @@ impl AttributeConversions for BackgroundPixmap {
     }
 }
 
-
-
 #[derive(Debug, Copy, Clone)]
 pub enum BorderPixmap {
     Border(xlib::Pixmap),
     CopyFromParent,
 }
-
 
 impl AttributeConversions for BorderPixmap {
     type Xlib = xlib::Pixmap;
@@ -193,14 +186,11 @@ impl AttributeConversions for BorderPixmap {
     }
 }
 
-
-
 #[derive(Debug, Copy, Clone)]
 pub enum Gravity {
     Forget,
     Static,
 }
-
 
 impl Default for Gravity {
     /// `Gravity::Forget`
@@ -209,7 +199,7 @@ impl Default for Gravity {
     }
 }
 
-impl AttributeConversions for Gravity  {
+impl AttributeConversions for Gravity {
     type Xlib = c_int;
 
     fn to_xlib_attribute(&self) -> Self::Xlib {
@@ -224,13 +214,15 @@ impl AttributeConversions for Gravity  {
             xlib::ForgetGravity => Gravity::Forget,
             xlib::StaticGravity => Gravity::Static,
             value => {
-                eprintln!("x11_wrapper warning: unknown gravity value {}, using default value", value);
+                eprintln!(
+                    "x11_wrapper warning: unknown gravity value {}, using default value",
+                    value
+                );
                 Gravity::default()
             }
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone)]
 pub enum WindowGravity {
@@ -284,14 +276,15 @@ impl AttributeConversions for WindowGravity {
             xlib::SouthEastGravity => WindowGravity::SouthEast,
             xlib::UnmapGravity => WindowGravity::Unmap,
             value => {
-                eprintln!("x11_wrapper warning: unknown window gravity value {}, using default value", value);
+                eprintln!(
+                    "x11_wrapper warning: unknown window gravity value {}, using default value",
+                    value
+                );
                 WindowGravity::default()
             }
         }
     }
 }
-
-
 
 #[derive(Debug, Clone, Copy)]
 pub enum BackingStore {
@@ -317,7 +310,10 @@ impl AttributeConversions for BackingStore {
             xlib::WhenMapped => BackingStore::WhenMapped,
             xlib::Always => BackingStore::Always,
             value => {
-                eprintln!("x11_wrapper warning: unknown backing store value {}, using default value", value);
+                eprintln!(
+                    "x11_wrapper warning: unknown backing store value {}, using default value",
+                    value
+                );
                 BackingStore::default()
             }
         }
@@ -329,8 +325,6 @@ impl Default for BackingStore {
         BackingStore::NotUseful
     }
 }
-
-
 
 #[derive(Debug, Copy, Clone)]
 pub struct SaveUnder(pub bool);
@@ -351,7 +345,10 @@ impl AttributeConversions for SaveUnder {
             xlib::True => SaveUnder(true),
             xlib::False => SaveUnder(false),
             value => {
-                eprintln!("x11_wrapper warning: unknown save under value {}, using default value", value);
+                eprintln!(
+                    "x11_wrapper warning: unknown save under value {}, using default value",
+                    value
+                );
                 SaveUnder::default()
             }
         }
@@ -375,7 +372,10 @@ impl AttributeConversions for EventMask {
         match EventMask::from_bits(value) {
             Some(events) => events,
             None => {
-                eprintln!("x11_wrapper warning: unknown bits in event mask {:#b}", value);
+                eprintln!(
+                    "x11_wrapper warning: unknown bits in event mask {:#b}",
+                    value
+                );
                 EventMask::from_bits_truncate(value)
             }
         }
@@ -398,7 +398,6 @@ bitflags!(
     }
 );
 
-
 impl AttributeConversions for DoNotPropagateMask {
     type Xlib = c_long;
 
@@ -410,13 +409,15 @@ impl AttributeConversions for DoNotPropagateMask {
         match DoNotPropagateMask::from_bits(value) {
             Some(events) => events,
             None => {
-                eprintln!("x11_wrapper warning: unknown bits in 'do not propagate' mask {:#b}", value);
+                eprintln!(
+                    "x11_wrapper warning: unknown bits in 'do not propagate' mask {:#b}",
+                    value
+                );
                 DoNotPropagateMask::from_bits_truncate(value)
             }
         }
     }
 }
-
 
 #[derive(Debug, Copy, Clone)]
 pub struct OverrideRedirect(pub bool);
@@ -437,7 +438,10 @@ impl AttributeConversions for OverrideRedirect {
             xlib::True => OverrideRedirect(true),
             xlib::False => OverrideRedirect(false),
             value => {
-                eprintln!("x11_wrapper warning: unknown override redirect value {}, using default value", value);
+                eprintln!(
+                    "x11_wrapper warning: unknown override redirect value {}, using default value",
+                    value
+                );
                 OverrideRedirect::default()
             }
         }
@@ -449,7 +453,6 @@ impl Default for OverrideRedirect {
         OverrideRedirect(false)
     }
 }
-
 
 #[derive(Debug, Clone, Copy)]
 pub enum Colormap {
@@ -501,7 +504,6 @@ impl AttributeConversions for Cursor {
     }
 }
 
-
 /// This attribute is separate trait because for top level
 /// windows this is always false.
 pub trait AttributeOverrideRedirect: GetAndSetAttributes {
@@ -531,11 +533,7 @@ pub trait CommonAttributes: GetAndSetAttributes {
         AttributeMask::DONT_PROPAGATE
     );
 
-    attribute_functions!(
-        cursor: Cursor,
-        set_cursor,
-        AttributeMask::CURSOR
-    );
+    attribute_functions!(cursor: Cursor, set_cursor, AttributeMask::CURSOR);
 }
 
 pub trait InputOutputWindowAttributes: GetAndSetAttributes {
@@ -593,13 +591,8 @@ pub trait InputOutputWindowAttributes: GetAndSetAttributes {
         AttributeMask::SAVE_UNDER
     );
 
-    attribute_functions!(
-        colormap: Colormap,
-        set_colormap,
-        AttributeMask::COLORMAP
-    );
+    attribute_functions!(colormap: Colormap, set_colormap, AttributeMask::COLORMAP);
 }
-
 
 /*
 template

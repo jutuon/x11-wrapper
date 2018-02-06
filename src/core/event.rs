@@ -25,14 +25,12 @@ impl EventBuffer {
 }
 
 pub struct RawEvent<'a> {
-    buffer: &'a EventBuffer
+    buffer: &'a EventBuffer,
 }
 
-impl <'a> RawEvent<'a> {
+impl<'a> RawEvent<'a> {
     pub(crate) fn new(buffer: &EventBuffer) -> RawEvent {
-        RawEvent {
-            buffer
-        }
+        RawEvent { buffer }
     }
 
     pub fn raw_event(&self) -> &xlib::XEvent {
@@ -314,7 +312,13 @@ pub(crate) fn send_event<T: EventCreator>(
     let status = unsafe {
         xlib_function!(
             display_handle.xlib_handle(),
-            XSendEvent(display_handle.raw_display(), window_id, propagate, event_mask.bits(), event)
+            XSendEvent(
+                display_handle.raw_display(),
+                window_id,
+                propagate,
+                event_mask.bits(),
+                event
+            )
         )
     };
 

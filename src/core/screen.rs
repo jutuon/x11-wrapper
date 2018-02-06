@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use x11::xlib;
 
-use super::color::{DefaultColormap};
+use super::color::DefaultColormap;
 use super::display::DisplayHandle;
 use super::error::{QueryError, QueryResult};
 use super::visual::Visual;
@@ -52,7 +52,12 @@ impl Screen {
 
     /// XDefaultColormapOfScreen
     pub fn default_colormap(&self) -> Option<DefaultColormap> {
-        DefaultColormap::new(unsafe { xlib_function!(self.xlib_handle(), XDefaultColormapOfScreen(self.raw_screen)) })
+        DefaultColormap::new(unsafe {
+            xlib_function!(
+                self.xlib_handle(),
+                XDefaultColormapOfScreen(self.raw_screen)
+            )
+        })
     }
 
     /// XDefaultDepthOfScreen
@@ -63,7 +68,8 @@ impl Screen {
     /// XDefaultVisualOfScreen, XVisualIDFromVisual
     pub fn default_visual(&self) -> Option<Visual> {
         let id = unsafe {
-            let visual_ptr = xlib_function!(self.xlib_handle(), XDefaultVisualOfScreen(self.raw_screen));
+            let visual_ptr =
+                xlib_function!(self.xlib_handle(), XDefaultVisualOfScreen(self.raw_screen));
 
             if visual_ptr.is_null() {
                 return None;
@@ -81,7 +87,9 @@ impl Screen {
 
     /// XDoesBackingStore
     pub fn does_backing_store(&self) -> QueryResult<BackingStore> {
-        let result = unsafe { xlib_function!(self.xlib_handle(), XDoesBackingStore(self.raw_screen)) };
+        let result = unsafe {
+            xlib_function!(self.xlib_handle(), XDoesBackingStore(self.raw_screen))
+        };
 
         let result = match result {
             xlib::WhenMapped => BackingStore::WhenMapped,
@@ -95,7 +103,8 @@ impl Screen {
 
     /// XDoesSaveUnders
     pub fn does_save_unders(&self) -> bool {
-        let result = unsafe { xlib_function!(self.xlib_handle(), XDoesSaveUnders(self.raw_screen)) };
+        let result =
+            unsafe { xlib_function!(self.xlib_handle(), XDoesSaveUnders(self.raw_screen)) };
 
         result == xlib::True
     }
@@ -149,7 +158,9 @@ impl Screen {
 
     /// XRootWindowOfScreen
     pub fn root_window_id(&self) -> Option<xlib::Window> {
-        let id = unsafe { xlib_function!(self.xlib_handle(), XRootWindowOfScreen(self.raw_screen)) };
+        let id = unsafe {
+            xlib_function!(self.xlib_handle(), XRootWindowOfScreen(self.raw_screen))
+        };
 
         if id == 0 {
             None

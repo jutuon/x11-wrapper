@@ -87,10 +87,7 @@ impl Drop for CreatedColormap {
         unsafe {
             xlib_function!(
                 self.display_handle.xlib_handle(),
-                XFreeColormap(
-                    self.display_handle.raw_display(),
-                    self.colormap
-                )
+                XFreeColormap(self.display_handle.raw_display(), self.colormap)
             );
         }
     }

@@ -38,7 +38,6 @@ pub enum XlibInitError {
 #[derive(Clone)]
 pub struct XlibHandle;
 
-
 #[cfg(feature = "runtime-linking")]
 #[derive(Clone)]
 pub struct XlibHandle {
@@ -59,12 +58,11 @@ impl XlibHandle {
 
     #[cfg(feature = "runtime-linking")]
     fn new() -> Result<Self, XlibInitError> {
-        let functions = ::x11::xlib::Xlib::open().map_err(|e| {
-            XlibInitError::LibraryLoadingError(e.detail().to_string())
-        })?;
+        let functions = ::x11::xlib::Xlib::open()
+            .map_err(|e| XlibInitError::LibraryLoadingError(e.detail().to_string()))?;
 
         Ok(XlibHandle {
-            functions: ::std::sync::Arc::new(functions)
+            functions: ::std::sync::Arc::new(functions),
         })
     }
 
@@ -80,9 +78,7 @@ impl XlibHandle {
         } else {
             let xlib_handle = Self::new()?;
 
-            let status = unsafe {
-                xlib_function!(&xlib_handle, XInitThreads())
-            };
+            let status = unsafe { xlib_function!(&xlib_handle, XInitThreads()) };
 
             if status == 0 {
                 return Err(XlibInitError::XInitThreadsError);

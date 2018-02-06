@@ -4,7 +4,7 @@
 pub mod input_output;
 pub mod attribute;
 
-use std::os::raw::{c_uint, c_int, c_long, c_void, c_ulong, c_uchar};
+use std::os::raw::{c_int, c_long, c_uchar, c_uint, c_ulong, c_void};
 use std::mem;
 use std::slice;
 use std::ptr;
@@ -13,7 +13,7 @@ use x11::xlib;
 
 use self::input_output::TopLevelInputOutputWindow;
 use core::screen::Screen;
-use core::utils::{Atom, XLIB_NONE, AtomList, Text, TextError, to_xlib_bool};
+use core::utils::{to_xlib_bool, Atom, AtomList, Text, TextError, XLIB_NONE};
 use core::XlibHandle;
 
 /// A non root window
@@ -29,13 +29,11 @@ pub struct ReconfigureWindow<W: Window> {
     value_mask: WindowChangesMask,
 }
 
-impl <W: Window> ReconfigureWindow<W> {
+impl<W: Window> ReconfigureWindow<W> {
     pub fn new(window: W) -> Self {
         Self {
             window,
-            window_changes: unsafe {
-                mem::zeroed()
-            },
+            window_changes: unsafe { mem::zeroed() },
             value_mask: WindowChangesMask::empty(),
         }
     }
@@ -54,7 +52,9 @@ impl <W: Window> ReconfigureWindow<W> {
 
     /// Panics if width is zero.
     pub fn set_width(mut self, width: c_int) -> Self {
-        if width == 0 { panic!("width is zero") }
+        if width == 0 {
+            panic!("width is zero")
+        }
         self.window_changes.width = width;
         self.value_mask |= WindowChangesMask::WIDTH;
         self
@@ -62,7 +62,9 @@ impl <W: Window> ReconfigureWindow<W> {
 
     /// Panics if height is zero.
     pub fn set_height(mut self, height: c_int) -> Self {
-        if height == 0 { panic!("height is zero") }
+        if height == 0 {
+            panic!("height is zero")
+        }
 
         self.window_changes.height = height;
         self.value_mask |= WindowChangesMask::HEIGHT;
@@ -92,7 +94,10 @@ impl ReconfigureWindow<TopLevelInputOutputWindow> {
     }
 
     /// XReconfigureWMWindow
-    pub fn configure(mut self, screen: &Screen) -> Result<TopLevelInputOutputWindow, TopLevelInputOutputWindow> {
+    pub fn configure(
+        mut self,
+        screen: &Screen,
+    ) -> Result<TopLevelInputOutputWindow, TopLevelInputOutputWindow> {
         let status = unsafe {
             xlib_function!(
                 self.window.xlib_handle(),
@@ -197,7 +202,7 @@ impl PropertyData<u32> {
     }
 }
 
-impl <T> PropertyData<T> {
+impl<T> PropertyData<T> {
     pub fn data(&self) -> &Vec<T> {
         &self.data
     }
@@ -305,12 +310,10 @@ pub trait WindowProperties: Window {
                     self.window_id(),
                     property_name.atom_id(),
                     0, // data offset
-
                     // We want all data so lets use value (c_long::max_value() / 4)
                     // as argument because xlib uses long_length argument like this
                     // L = MINIMUM(T, 4 * long_length)
                     (c_long::max_value() / 4),
-
                     to_xlib_bool(is_deleted),
                     property_type.to_xlib_property_function_parameter(),
                     &mut actual_type_return,
@@ -323,11 +326,11 @@ pub trait WindowProperties: Window {
         };
 
         if result != xlib::Success as c_int {
-            return Err(PropertyError::FunctionFailed)
+            return Err(PropertyError::FunctionFailed);
         }
 
         if prop_return.is_null() {
-            return Err(PropertyError::PropertyDataHandleNull)
+            return Err(PropertyError::PropertyDataHandleNull);
         }
 
         // TODO: check that c_ulong can fit in usize
@@ -338,10 +341,7 @@ pub trait WindowProperties: Window {
 
             // free the xlib one extra byte
             unsafe {
-                xlib_function!(
-                    self.xlib_handle(),
-                    XFree(prop_return as *mut c_void)
-                );
+                xlib_function!(self.xlib_handle(), XFree(prop_return as *mut c_void));
             }
 
             return Err(PropertyError::DoesNotExist);
@@ -365,13 +365,11 @@ pub trait WindowProperties: Window {
                     8 => PropertyDataFormat::Char,
                     16 => PropertyDataFormat::Short,
                     32 => PropertyDataFormat::Long,
-                    format => {
-                        return Err(PropertyError::UnknownDataFormat(format))
-                    }
+                    format => return Err(PropertyError::UnknownDataFormat(format)),
                 };
 
                 Err(PropertyError::WrongType(property_data, data_format))
-            },
+            }
             PropertyType::Atom(_) | PropertyType::AnyPropertyType => {
                 // successful property request
 
@@ -382,21 +380,33 @@ pub trait WindowProperties: Window {
                             slice::from_raw_parts(prop_return, nitems_return as usize)
                         };
 
-                        Property::Char(PropertyData::<u8>::from_data(data, property_name, property_type_atom))
+                        Property::Char(PropertyData::<u8>::from_data(
+                            data,
+                            property_name,
+                            property_type_atom,
+                        ))
                     }
                     16 => {
                         let data: &[u16] = unsafe {
                             slice::from_raw_parts(prop_return as *const u16, nitems_return as usize)
                         };
 
-                        Property::Short(PropertyData::<u16>::from_data(data, property_name, property_type_atom))
+                        Property::Short(PropertyData::<u16>::from_data(
+                            data,
+                            property_name,
+                            property_type_atom,
+                        ))
                     }
                     32 => {
                         let data: &[u32] = unsafe {
                             slice::from_raw_parts(prop_return as *const u32, nitems_return as usize)
                         };
 
-                        Property::Long(PropertyData::<u32>::from_data(data, property_name, property_type_atom))
+                        Property::Long(PropertyData::<u32>::from_data(
+                            data,
+                            property_name,
+                            property_type_atom,
+                        ))
                     }
                     format => {
                         return Err(PropertyError::UnknownDataFormat(format));
@@ -439,9 +449,8 @@ pub trait WindowProperties: Window {
         // TODO: Check that c_int fits in usize.
         // TODO: Check that atom in atom_slice is valid atom or trust Xlib?
 
-        let atom_slice: &[xlib::Atom] = unsafe {
-            slice::from_raw_parts(xlib_atom_list, num_prop as usize)
-        };
+        let atom_slice: &[xlib::Atom] =
+            unsafe { slice::from_raw_parts(xlib_atom_list, num_prop as usize) };
 
         for atom in atom_slice {
             atom_list.add(Atom::from_raw(*atom));
@@ -450,10 +459,7 @@ pub trait WindowProperties: Window {
         drop(atom_slice);
 
         unsafe {
-            xlib_function!(
-                self.xlib_handle(),
-                XFree(xlib_atom_list as *mut c_void)
-            );
+            xlib_function!(self.xlib_handle(), XFree(xlib_atom_list as *mut c_void));
         }
 
         atom_list
@@ -464,7 +470,11 @@ pub trait WindowProperties: Window {
         unsafe {
             xlib_function!(
                 self.xlib_handle(),
-                XDeleteProperty(self.raw_display(), self.window_id(), property_name.atom_id())
+                XDeleteProperty(
+                    self.raw_display(),
+                    self.window_id(),
+                    property_name.atom_id()
+                )
             );
         }
     }
@@ -480,12 +490,7 @@ pub trait WindowProperties: Window {
     /// space, a BadAlloc error results.) "
     ///
     /// XChangeProperty
-    fn change_property(
-        &self,
-        mut property: Property,
-        mode: ChangePropertyMode,
-    ) -> Result<(), ()> {
-
+    fn change_property(&self, mut property: Property, mode: ChangePropertyMode) -> Result<(), ()> {
         unsafe {
             xlib_function!(
                 self.xlib_handle(),
@@ -527,10 +532,11 @@ pub trait WindowProperties: Window {
     /// Get properties with type `TEXT`.
     ///
     /// XGetTextProperty
-    fn get_text_property<T: Into<Atom>>(&self, property: T) -> Result<Vec<String>, TextPropertyError> {
-        let mut text_property = unsafe {
-            mem::zeroed()
-        };
+    fn get_text_property<T: Into<Atom>>(
+        &self,
+        property: T,
+    ) -> Result<Vec<String>, TextPropertyError> {
+        let mut text_property = unsafe { mem::zeroed() };
 
         let status = unsafe {
             xlib_function!(
@@ -545,15 +551,18 @@ pub trait WindowProperties: Window {
         };
 
         if status == 0 {
-            return Err(TextPropertyError::XlibFunctionFailed)
+            return Err(TextPropertyError::XlibFunctionFailed);
         }
 
         if text_property.value.is_null() {
-            return Err(TextPropertyError::DoesNotExist)
+            return Err(TextPropertyError::DoesNotExist);
         }
 
-        Text::xlib_text_property_to_string_list(text_property, self.xlib_handle(), self.raw_display())
-            .map_err(|e| TextPropertyError::TextError(e))
+        Text::xlib_text_property_to_string_list(
+            text_property,
+            self.xlib_handle(),
+            self.raw_display(),
+        ).map_err(|e| TextPropertyError::TextError(e))
     }
 }
 
@@ -575,7 +584,6 @@ pub enum PropertyError {
     PropertyDataHandleNull,
     UnknownDataFormat(c_int),
 }
-
 
 #[derive(Debug, Clone, Copy)]
 pub enum PropertyDataFormat {
@@ -625,14 +633,25 @@ pub trait Selection: Window {
     /// XSetSelectionOwner
     fn set_owner(&self, selection: Atom) {
         unsafe {
-            xlib_function!(self.xlib_handle(), XSetSelectionOwner(self.raw_display(), selection.atom_id(), self.window_id(), xlib::CurrentTime));
+            xlib_function!(
+                self.xlib_handle(),
+                XSetSelectionOwner(
+                    self.raw_display(),
+                    selection.atom_id(),
+                    self.window_id(),
+                    xlib::CurrentTime
+                )
+            );
         }
     }
 
     /// XGetSelectionOwner
     fn get_owner_window_id(&self, selection: Atom) -> xlib::Window {
         unsafe {
-            xlib_function!(self.xlib_handle(), XGetSelectionOwner(self.raw_display(), selection.atom_id()))
+            xlib_function!(
+                self.xlib_handle(),
+                XGetSelectionOwner(self.raw_display(), selection.atom_id())
+            )
         }
     }
 
