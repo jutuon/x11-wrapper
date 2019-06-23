@@ -313,7 +313,7 @@ pub(crate) fn send_event<T: EventCreator>(
         xlib_function!(
             display_handle.xlib_handle(),
             XSendEvent(
-                display_handle.raw_display(),
+                Some(display_handle.raw_display()),
                 window_id,
                 propagate,
                 event_mask.bits(),

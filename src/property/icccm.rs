@@ -42,7 +42,7 @@ impl TopLevelInputOutputWindow {
             xlib_function!(
                 self.xlib_handle(),
                 XSetWMProtocols(
-                    self.raw_display(),
+                    Some(self.raw_display()),
                     self.window_id(),
                     atom_list.as_mut_ptr(),
                     atom_list.len()
@@ -64,7 +64,7 @@ impl TopLevelInputOutputWindow {
         unsafe {
             xlib_function!(
                 self.xlib_handle(),
-                XSetTransientForHint(self.raw_display(), self.window_id(), window_id)
+                XSetTransientForHint(Some(self.raw_display()), self.window_id(), window_id)
             );
         }
 
@@ -205,7 +205,7 @@ impl Hints {
     ///
     /// XAllocWMHints
     fn new(xlib_handle: &XlibHandle) -> Result<Self, ()> {
-        let wm_hints_ptr = unsafe { xlib_function!(xlib_handle, XAllocWMHints()) };
+        let wm_hints_ptr = unsafe { xlib_function!(xlib_handle, XAllocWMHints(None)) };
 
         if wm_hints_ptr.is_null() {
             Err(())
@@ -227,7 +227,7 @@ impl Drop for Hints {
     /// XFree
     fn drop(&mut self) {
         unsafe {
-            xlib_function!(self._xlib_handle, XFree(self.wm_hints_ptr as *mut c_void));
+            xlib_function!(self._xlib_handle, XFree(None, self.wm_hints_ptr as *mut c_void));
         }
     }
 }
@@ -359,7 +359,7 @@ impl HintsConfigurator {
             xlib_function!(
                 self.window.xlib_handle(),
                 XSetWMHints(
-                    self.window.raw_display(),
+                    Some(self.window.raw_display()),
                     self.window.window_id(),
                     self.hints.as_mut_ptr()
                 )
@@ -383,7 +383,7 @@ impl SizeHints {
     ///
     /// XAllocSizeHints
     fn new(xlib_handle: &XlibHandle) -> Result<Self, ()> {
-        let size_hints_ptr = unsafe { xlib_function!(xlib_handle, XAllocSizeHints()) };
+        let size_hints_ptr = unsafe { xlib_function!(xlib_handle, XAllocSizeHints(None)) };
 
         if size_hints_ptr.is_null() {
             Err(())
@@ -404,7 +404,7 @@ impl SizeHints {
 impl Drop for SizeHints {
     fn drop(&mut self) {
         unsafe {
-            xlib_function!(self._xlib_handle, XFree(self.size_hints_ptr as *mut c_void));
+            xlib_function!(self._xlib_handle, XFree(None, self.size_hints_ptr as *mut c_void));
         }
     }
 }
@@ -504,7 +504,7 @@ impl NormalHintsConfigurator {
             xlib_function!(
                 self.window.xlib_handle(),
                 XSetWMNormalHints(
-                    self.window.raw_display(),
+                    Some(self.window.raw_display()),
                     self.window.window_id(),
                     self.size_hints.as_mut_ptr()
                 )

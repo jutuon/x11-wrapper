@@ -51,7 +51,7 @@ impl Text {
             xlib_function!(
                 display.xlib_handle(),
                 Xutf8TextListToTextProperty(
-                    display.raw_display(),
+                    Some(display.raw_display()),
                     &mut one_text,
                     1,
                     xlib::XUTF8StringStyle,
@@ -116,7 +116,7 @@ impl Text {
             xlib_function!(
                 _xlib_handle,
                 Xutf8TextPropertyToTextList(
-                    raw_display,
+                    Some(raw_display),
                     &mut text_property,
                     &mut text_list,
                     &mut text_count
@@ -150,7 +150,7 @@ impl Text {
 
         if text_count < 0 {
             unsafe {
-                xlib_function!(_xlib_handle, XFreeStringList(text_list));
+                xlib_function!(_xlib_handle, XFreeStringList(None, text_list));
             }
 
             return Err(TextError::XlibReturnedNegativeTextCount);
@@ -176,7 +176,7 @@ impl Text {
         };
 
         unsafe {
-            xlib_function!(_xlib_handle, XFreeStringList(text_list));
+            xlib_function!(_xlib_handle, XFreeStringList(None, text_list));
         }
 
         final_result
@@ -189,7 +189,7 @@ impl Drop for Text {
         unsafe {
             xlib_function!(
                 self.display_handle.xlib_handle(),
-                XFree(self.text_property.value as *mut c_void)
+                XFree(None, self.text_property.value as *mut c_void)
             );
         }
     }
@@ -257,7 +257,7 @@ impl Atom {
         let atom_id = unsafe {
             xlib_function!(
                 display.xlib_handle(),
-                XInternAtom(display.raw_display(), atom_name.as_ptr(), only_if_exists)
+                XInternAtom(Some(display.raw_display()), atom_name.as_ptr(), only_if_exists)
             )
         };
 
@@ -273,7 +273,7 @@ impl Atom {
         let text_ptr = unsafe {
             xlib_function!(
                 display.xlib_handle(),
-                XGetAtomName(display.raw_display(), self.atom_id())
+                XGetAtomName(Some(display.raw_display()), self.atom_id())
             )
         };
 
@@ -286,7 +286,7 @@ impl Atom {
             };
 
             unsafe {
-                xlib_function!(display.xlib_handle(), XFree(text_ptr as *mut c_void));
+                xlib_function!(display.xlib_handle(), XFree(None, text_ptr as *mut c_void));
             }
 
             Ok(name)

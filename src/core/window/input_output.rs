@@ -134,7 +134,7 @@ impl InputOutputWindowBuilder<BuildTopLevelWindow> {
             xlib_function!(
                 self.display_handle.xlib_handle(),
                 XCreateWindow(
-                    self.display_handle.raw_display(),
+                    Some(self.display_handle.raw_display()),
                     self.parent_window_id,
                     self.x,
                     self.y,
@@ -179,7 +179,7 @@ impl TopLevelInputOutputWindow {
         unsafe {
             xlib_function!(
                 self.xlib_handle(),
-                XMapWindow(self.display_handle.raw_display(), self.window_id)
+                XMapWindow(Some(self.display_handle.raw_display()), self.window_id)
             );
         }
 
@@ -191,7 +191,7 @@ impl TopLevelInputOutputWindow {
         unsafe {
             xlib_function!(
                 self.xlib_handle(),
-                XUnmapWindow(self.display_handle.raw_display(), self.window_id)
+                XUnmapWindow(Some(self.display_handle.raw_display()), self.window_id)
             );
         }
 
@@ -204,7 +204,7 @@ impl TopLevelInputOutputWindow {
             let status = xlib_function!(
                 self.xlib_handle(),
                 XIconifyWindow(
-                    self.display_handle.raw_display(),
+                    Some(self.display_handle.raw_display()),
                     self.window_id,
                     screen.screen_number()
                 )
@@ -224,7 +224,7 @@ impl TopLevelInputOutputWindow {
             let status = xlib_function!(
                 self.xlib_handle(),
                 XWithdrawWindow(
-                    self.display_handle.raw_display(),
+                    Some(self.display_handle.raw_display()),
                     self.window_id,
                     screen.screen_number()
                 )
@@ -246,7 +246,7 @@ impl Drop for TopLevelInputOutputWindow {
             // TODO: check errors
             xlib_function!(
                 self.xlib_handle(),
-                XDestroyWindow(self.display_handle.raw_display(), self.window_id)
+                XDestroyWindow(Some(self.display_handle.raw_display()), self.window_id)
             );
         }
     }

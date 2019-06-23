@@ -46,7 +46,7 @@ impl Drop for DisplayHandle {
     /// XCloseDisplay - BadGC
     fn drop(&mut self) {
         unsafe {
-            xlib_function!(self.xlib_handle(), XCloseDisplay(self.raw_display));
+            xlib_function!(self.xlib_handle(), XCloseDisplay(Some(self.raw_display)));
 
             // TODO: check BadGC error
         }
@@ -63,7 +63,7 @@ impl Display {
     pub(crate) fn new(xlib_handle: XlibHandle) -> Result<Self, ()> {
         // TODO: display_name string support
 
-        let raw_display = unsafe { xlib_function!(xlib_handle, XOpenDisplay(ptr::null())) };
+        let raw_display = unsafe { xlib_function!(xlib_handle, XOpenDisplay(None, ptr::null())) };
 
         if raw_display.is_null() {
             return Err(());
@@ -88,7 +88,7 @@ impl Display {
 
     /// XConnectionNumber
     pub fn connection_number(&self) -> c_int {
-        unsafe { xlib_function!(self.xlib_handle(), XConnectionNumber(self.raw_display())) }
+        unsafe { xlib_function!(self.xlib_handle(), XConnectionNumber(Some(self.raw_display()))) }
     }
 
     /// XDefaultScreenOfDisplay
@@ -96,7 +96,7 @@ impl Display {
         let screen = unsafe {
             xlib_function!(
                 self.xlib_handle(),
-                XDefaultScreenOfDisplay(self.raw_display())
+                XDefaultScreenOfDisplay(Some(self.raw_display()))
             )
         };
 
@@ -113,7 +113,7 @@ impl Display {
     /// XDisplayString
     pub fn display_string(&self) -> &CStr {
         unsafe {
-            let string = xlib_function!(self.xlib_handle(), XDisplayString(self.raw_display()));
+            let string = xlib_function!(self.xlib_handle(), XDisplayString(Some(self.raw_display())));
             CStr::from_ptr(string)
         }
     }
@@ -125,7 +125,7 @@ impl Display {
         let size = unsafe {
             xlib_function!(
                 self.xlib_handle(),
-                XExtendedMaxRequestSize(self.raw_display())
+                XExtendedMaxRequestSize(Some(self.raw_display()))
             )
         };
 
@@ -138,7 +138,7 @@ impl Display {
 
     /// XMaxRequestSize
     pub fn max_request_size(&self) -> c_long {
-        unsafe { xlib_function!(self.xlib_handle(), XMaxRequestSize(self.raw_display())) }
+        unsafe { xlib_function!(self.xlib_handle(), XMaxRequestSize(Some(self.raw_display()))) }
     }
 
     /// XLastKnownRequestProcessed
@@ -146,24 +146,24 @@ impl Display {
         unsafe {
             xlib_function!(
                 self.xlib_handle(),
-                XLastKnownRequestProcessed(self.raw_display())
+                XLastKnownRequestProcessed(Some(self.raw_display()))
             )
         }
     }
 
     /// XNextRequest
     pub fn next_request(&self) -> c_ulong {
-        unsafe { xlib_function!(self.xlib_handle(), XNextRequest(self.raw_display())) }
+        unsafe { xlib_function!(self.xlib_handle(), XNextRequest(Some(self.raw_display()))) }
     }
 
     /// XProtocolVersion
     pub fn protocol_version(&self) -> c_int {
-        unsafe { xlib_function!(self.xlib_handle(), XProtocolVersion(self.raw_display())) }
+        unsafe { xlib_function!(self.xlib_handle(), XProtocolVersion(Some(self.raw_display()))) }
     }
 
     /// XProtocolRevision
     pub fn protocol_revision(&self) -> c_int {
-        unsafe { xlib_function!(self.xlib_handle(), XProtocolRevision(self.raw_display())) }
+        unsafe { xlib_function!(self.xlib_handle(), XProtocolRevision(Some(self.raw_display()))) }
     }
 
     /// Number of events in the event queue.
@@ -173,27 +173,27 @@ impl Display {
         unsafe {
             xlib_function!(
                 self.xlib_handle(),
-                XEventsQueued(self.raw_display(), mode as c_int)
+                XEventsQueued(Some(self.raw_display()), mode as c_int)
             )
         }
     }
 
     /// XScreenCount
     pub fn screen_count(&self) -> c_int {
-        unsafe { xlib_function!(self.xlib_handle(), XScreenCount(self.raw_display())) }
+        unsafe { xlib_function!(self.xlib_handle(), XScreenCount(Some(self.raw_display()))) }
     }
 
     /// XServerVendor
     pub fn server_vendor(&self) -> &CStr {
         unsafe {
-            let string = xlib_function!(self.xlib_handle(), XServerVendor(self.raw_display()));
+            let string = xlib_function!(self.xlib_handle(), XServerVendor(Some(self.raw_display())));
             CStr::from_ptr(string)
         }
     }
 
     /// XVendorRelease
     pub fn vendor_release(&self) -> c_int {
-        unsafe { xlib_function!(self.xlib_handle(), XVendorRelease(self.raw_display())) }
+        unsafe { xlib_function!(self.xlib_handle(), XVendorRelease(Some(self.raw_display()))) }
     }
 
     // TODO: section "Image Format Functions and Macros" from xlib manual
@@ -201,7 +201,7 @@ impl Display {
     /// XNoOp
     pub fn send_no_op_request(&self) {
         unsafe {
-            xlib_function!(self.xlib_handle(), XNoOp(self.raw_display()));
+            xlib_function!(self.xlib_handle(), XNoOp(Some(self.raw_display())));
         }
     }
 
@@ -213,14 +213,14 @@ impl Display {
     /// XFlush
     pub fn flush_output_buffer(&self) {
         unsafe {
-            xlib_function!(self.xlib_handle(), XFlush(self.raw_display()));
+            xlib_function!(self.xlib_handle(), XFlush(Some(self.raw_display())));
         }
     }
 
     /// XSync
     pub fn sync(&self) {
         unsafe {
-            xlib_function!(self.xlib_handle(), XSync(self.raw_display(), xlib::False));
+            xlib_function!(self.xlib_handle(), XSync(Some(self.raw_display()), xlib::False));
         }
     }
 
@@ -247,7 +247,7 @@ impl Display {
         unsafe {
             xlib_function!(
                 self.xlib_handle(),
-                XNextEvent(self.raw_display(), event_buffer.event_mut_ptr())
+                XNextEvent(Some(self.raw_display()), event_buffer.event_mut_ptr())
             );
         }
 

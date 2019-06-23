@@ -52,7 +52,7 @@ impl CreatedColormap {
             xlib_function!(
                 display_handle.xlib_handle(),
                 XCreateColormap(
-                    display_handle.raw_display(),
+                    Some(display_handle.raw_display()),
                     root_window_id,
                     visual.raw_visual(),
                     xlib::AllocNone
@@ -87,7 +87,7 @@ impl Drop for CreatedColormap {
         unsafe {
             xlib_function!(
                 self.display_handle.xlib_handle(),
-                XFreeColormap(self.display_handle.raw_display(), self.colormap)
+                XFreeColormap(Some(self.display_handle.raw_display()), self.colormap)
             );
         }
     }

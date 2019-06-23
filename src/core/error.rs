@@ -151,7 +151,7 @@ extern "C" fn protocol_error_handler(
 /// XSetErrorHandler
 pub(crate) fn set_xlib_error_handler(_xlib_handle: &XlibHandle) {
     unsafe {
-        xlib_function!(_xlib_handle, XSetErrorHandler(Some(protocol_error_handler)));
+        xlib_function!(_xlib_handle, XSetErrorHandler(None, Some(protocol_error_handler)));
     }
 }
 
@@ -189,7 +189,7 @@ pub fn check_error(display: &Display) -> Option<ErrorEventAndText> {
                 xlib_function!(
                     display.xlib_handle(),
                     XGetErrorText(
-                        display.raw_display(),
+                        Some(display.raw_display()),
                         error_event.error.to_xlib_error_code() as c_int,
                         text_buffer.as_mut_ptr() as *mut c_char,
                         TEXT_BUFFER_SIZE as c_int

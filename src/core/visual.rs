@@ -27,7 +27,7 @@ impl Visual {
             xlib_function!(
                 display_handle.xlib_handle(),
                 XGetVisualInfo(
-                    display_handle.raw_display(),
+                    Some(display_handle.raw_display()),
                     xlib::VisualIDMask,
                     &mut template,
                     &mut count
@@ -45,7 +45,7 @@ impl Visual {
             unsafe {
                 xlib_function!(
                     display_handle.xlib_handle(),
-                    XFree(visual_info_list as *mut c_void)
+                    XFree(None, visual_info_list as *mut c_void)
                 );
             }
 

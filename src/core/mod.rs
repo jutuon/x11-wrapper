@@ -78,7 +78,7 @@ impl XlibHandle {
         } else {
             let xlib_handle = Self::new()?;
 
-            let status = unsafe { xlib_function!(&xlib_handle, XInitThreads()) };
+            let status = unsafe { xlib_function!(&xlib_handle, XInitThreads(None)) };
 
             if status == 0 {
                 return Err(XlibInitError::XInitThreadsError);

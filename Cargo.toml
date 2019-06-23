@@ -10,5 +10,5 @@ bitflags = "1.0"
 lazy_static = "1.0"
 
 [features]
-
 runtime-linking = ["x11-dl"]
+multithreading = []

@@ -102,7 +102,7 @@ impl ReconfigureWindow<TopLevelInputOutputWindow> {
             xlib_function!(
                 self.window.xlib_handle(),
                 XReconfigureWMWindow(
-                    self.window.raw_display(),
+                    Some(self.window.raw_display()),
                     self.window.window_id(),
                     screen.screen_number(),
                     self.value_mask.bits(),
@@ -306,7 +306,7 @@ pub trait WindowProperties: Window {
             xlib_function!(
                 self.xlib_handle(),
                 XGetWindowProperty(
-                    self.raw_display(),
+                    Some(self.raw_display()),
                     self.window_id(),
                     property_name.atom_id(),
                     0, // data offset
@@ -341,7 +341,7 @@ pub trait WindowProperties: Window {
 
             // free the xlib one extra byte
             unsafe {
-                xlib_function!(self.xlib_handle(), XFree(prop_return as *mut c_void));
+                xlib_function!(self.xlib_handle(), XFree(None, prop_return as *mut c_void));
             }
 
             return Err(PropertyError::DoesNotExist);
@@ -418,7 +418,7 @@ pub trait WindowProperties: Window {
         };
 
         unsafe {
-            xlib_function!(self.xlib_handle(), XFree(prop_return as *mut c_void));
+            xlib_function!(self.xlib_handle(), XFree(None, prop_return as *mut c_void));
         }
 
         result
@@ -433,7 +433,7 @@ pub trait WindowProperties: Window {
         let xlib_atom_list: *mut xlib::Atom = unsafe {
             xlib_function!(
                 self.xlib_handle(),
-                XListProperties(self.raw_display(), self.window_id(), &mut num_prop)
+                XListProperties(Some(self.raw_display()), self.window_id(), &mut num_prop)
             )
         };
 
@@ -459,7 +459,7 @@ pub trait WindowProperties: Window {
         drop(atom_slice);
 
         unsafe {
-            xlib_function!(self.xlib_handle(), XFree(xlib_atom_list as *mut c_void));
+            xlib_function!(self.xlib_handle(), XFree(None, xlib_atom_list as *mut c_void));
         }
 
         atom_list
@@ -471,7 +471,7 @@ pub trait WindowProperties: Window {
             xlib_function!(
                 self.xlib_handle(),
                 XDeleteProperty(
-                    self.raw_display(),
+                    Some(self.raw_display()),
                     self.window_id(),
                     property_name.atom_id()
                 )
@@ -495,7 +495,7 @@ pub trait WindowProperties: Window {
             xlib_function!(
                 self.xlib_handle(),
                 XChangeProperty(
-                    self.raw_display(),
+                    Some(self.raw_display()),
                     self.window_id(),
                     property.property_name().atom_id(),
                     property.property_type().atom_id(),
@@ -518,7 +518,7 @@ pub trait WindowProperties: Window {
             xlib_function!(
                 self.xlib_handle(),
                 XSetTextProperty(
-                    self.raw_display(),
+                    Some(self.raw_display()),
                     self.window_id(),
                     text.raw_text_property(),
                     property.into().atom_id()
@@ -542,7 +542,7 @@ pub trait WindowProperties: Window {
             xlib_function!(
                 self.xlib_handle(),
                 XGetTextProperty(
-                    self.raw_display(),
+                    Some(self.raw_display()),
                     self.window_id(),
                     &mut text_property,
                     property.into().atom_id()
@@ -636,7 +636,7 @@ pub trait Selection: Window {
             xlib_function!(
                 self.xlib_handle(),
                 XSetSelectionOwner(
-                    self.raw_display(),
+                    Some(self.raw_display()),
                     selection.atom_id(),
                     self.window_id(),
                     xlib::CurrentTime
@@ -650,7 +650,7 @@ pub trait Selection: Window {
         unsafe {
             xlib_function!(
                 self.xlib_handle(),
-                XGetSelectionOwner(self.raw_display(), selection.atom_id())
+                XGetSelectionOwner(Some(self.raw_display()), selection.atom_id())
             )
         }
     }
@@ -661,7 +661,7 @@ pub trait Selection: Window {
             xlib_function!(
                 self.xlib_handle(),
                 XConvertSelection(
-                    self.raw_display(),
+                    Some(self.raw_display()),
                     selection.atom_id(),
                     target.atom_id(),
                     property.atom_id(),
