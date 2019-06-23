@@ -36,8 +36,6 @@ pub extern crate x11;
 #[cfg(feature = "runtime-linking")]
 pub extern crate x11_dl as x11;
 
-// TODO: type check macro parameters
-
 macro_rules! xlib_function {
     ( $xlib_handle:expr, $function:tt ( Some($raw_display:expr) ) ) => {
         xlib_function!($xlib_handle, $function(Some($raw_display),))
@@ -47,6 +45,9 @@ macro_rules! xlib_function {
     };
     ( $xlib_handle:expr, $function:tt ( Some($raw_display:expr), $( $function_argument:expr ),*) ) => {
         {
+            let _: *mut x11::xlib::Display = $raw_display;
+            let _: &::core::XlibHandle = $xlib_handle;
+
             #[cfg(feature = "multithreading")]
             xlib_function!($xlib_handle, XLockDisplay(None, $raw_display));
 
@@ -68,6 +69,8 @@ macro_rules! xlib_function {
     };
     ( $xlib_handle:expr, $function:tt ( None, $( $function_argument:expr ),*) ) => {
         {
+            let _: &::core::XlibHandle = $xlib_handle;
+
             #[cfg(not(feature = "runtime-linking"))]
             {
                 (::x11::xlib::$function)( $( $function_argument ,)* )

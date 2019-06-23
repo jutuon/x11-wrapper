@@ -227,7 +227,7 @@ impl Drop for Hints {
     /// XFree
     fn drop(&mut self) {
         unsafe {
-            xlib_function!(self._xlib_handle, XFree(None, self.wm_hints_ptr as *mut c_void));
+            xlib_function!(&self._xlib_handle, XFree(None, self.wm_hints_ptr as *mut c_void));
         }
     }
 }
@@ -404,7 +404,7 @@ impl SizeHints {
 impl Drop for SizeHints {
     fn drop(&mut self) {
         unsafe {
-            xlib_function!(self._xlib_handle, XFree(None, self.size_hints_ptr as *mut c_void));
+            xlib_function!(&self._xlib_handle, XFree(None, self.size_hints_ptr as *mut c_void));
         }
     }
 }

@@ -63,7 +63,7 @@ impl Display {
     pub(crate) fn new(xlib_handle: XlibHandle) -> Result<Self, ()> {
         // TODO: display_name string support
 
-        let raw_display = unsafe { xlib_function!(xlib_handle, XOpenDisplay(None, ptr::null())) };
+        let raw_display = unsafe { xlib_function!(&xlib_handle, XOpenDisplay(None, ptr::null())) };
 
         if raw_display.is_null() {
             return Err(());
