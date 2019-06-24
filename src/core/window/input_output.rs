@@ -7,7 +7,7 @@ use x11::xlib;
 use super::attribute::*;
 use super::{Selection, Window, WindowProperties};
 
-use core::display::Display;
+use core::display::X11Display;
 use core::color::{ColormapID, CreatedColormap};
 use core::visual::Visual;
 use core::screen::Screen;
@@ -17,7 +17,7 @@ pub struct BuildTopLevelWindow;
 
 #[derive(Debug)]
 pub struct InputOutputWindowBuilder<T> {
-    display_handle: Display,
+    display_handle: X11Display,
     attributes: WindowAttributes,
     colormap_and_visual: Option<(CreatedColormap, Visual)>,
     parent_window_id: xlib::Window,
@@ -164,7 +164,7 @@ impl InputOutputWindowBuilder<BuildTopLevelWindow> {
 
 #[derive(Debug)]
 pub struct TopLevelInputOutputWindow {
-    display_handle: Display,
+    display_handle: X11Display,
     colormap: Option<CreatedColormap>,
     window_id: xlib::Window,
     attributes: WindowAttributes,

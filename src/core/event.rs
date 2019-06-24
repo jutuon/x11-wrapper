@@ -5,7 +5,7 @@ use std::os::raw::{c_int, c_long, c_uint};
 
 use x11::xlib;
 
-use super::display::Display;
+use super::display::X11Display;
 
 pub struct EventBuffer {
     event: xlib::XEvent,
@@ -294,7 +294,7 @@ impl EventCreator for ClientMessageEventCreator {
 ///
 /// XSendEvent
 pub(crate) fn send_event<T: EventCreator>(
-    display_handle: &Display,
+    display_handle: &X11Display,
     window_id: xlib::Window,
     propagate: bool,
     event_mask: EventMask,

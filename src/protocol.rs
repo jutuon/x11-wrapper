@@ -3,7 +3,7 @@
 use std::os::raw::c_long;
 
 use core::utils::{Atom, AtomList, AtomName};
-use core::display::Display;
+use core::display::X11Display;
 
 use x11::xlib;
 
@@ -25,7 +25,7 @@ impl Protocols {
     /// XInternAtom
     pub fn enable_delete_window(
         &mut self,
-        display: &Display,
+        display: &X11Display,
     ) -> Result<ProtocolHandlerDeleteWindow, ()> {
         let name = AtomName::new("WM_DELETE_WINDOW".to_string()).map_err(|_| ())?;
         let atom = Atom::new(display, name, false)?;

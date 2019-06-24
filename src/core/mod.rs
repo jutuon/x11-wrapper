@@ -14,7 +14,7 @@ pub mod utils;
 use std::sync::Mutex;
 use std::fmt;
 
-use self::display::Display;
+use self::display::X11Display;
 
 lazy_static! {
     static ref INIT_FLAG: Mutex<bool> = Mutex::new(false);
@@ -110,8 +110,8 @@ impl XlibHandle {
     /// Create new connection to X11 server.
     ///
     /// XOpenDisplay
-    pub fn create_display(&self) -> Result<Display, ()> {
-        Display::new(self.clone())
+    pub fn create_display(&self) -> Result<X11Display, ()> {
+        X11Display::new(self.clone())
     }
 }
 

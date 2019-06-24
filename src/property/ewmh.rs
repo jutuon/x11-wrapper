@@ -6,7 +6,7 @@ use std::os::raw::c_long;
 
 use core::utils::{Atom, AtomName};
 use core::event::ClientMessageEventCreator;
-use core::display::Display;
+use core::display::X11Display;
 use core::window::input_output::TopLevelInputOutputWindow;
 use core::window::Window;
 
@@ -21,7 +21,7 @@ impl NetWmStateHandler {
     /// Returns error if querying atom_name fails.
     ///
     /// XInternAtom
-    pub fn new(display: &Display) -> Result<Self, ()> {
+    pub fn new(display: &X11Display) -> Result<Self, ()> {
         let fullscreen_name = AtomName::new("_NET_WM_STATE_FULLSCREEN".to_string())
             .map_err(|_| ())
             .unwrap();

@@ -51,14 +51,14 @@ impl Drop for DisplayHandle {
 
 /// Connection to X11 server.
 #[derive(Debug, Clone)]
-pub struct Display {
+pub struct X11Display {
     #[cfg(feature = "multithreading")]
     display_handle: std::sync::Arc<DisplayHandle>,
     #[cfg(not(feature = "multithreading"))]
     display_handle: std::rc::Rc<DisplayHandle>,
 }
 
-impl Display {
+impl X11Display {
     /// Create new connection to X11 server.
     pub(crate) fn new(xlib_handle: XlibHandle) -> Result<Self, ()> {
         // TODO: display_name string support
@@ -75,7 +75,7 @@ impl Display {
         #[cfg(not(feature = "multithreading"))]
         let display_handle = std::rc::Rc::new(DisplayHandle::new(raw_display, xlib_handle));
 
-        Ok(Self {
+        Ok(X11Display {
             display_handle
         })
     }

@@ -6,7 +6,7 @@ use std::slice;
 
 use x11::xlib;
 
-use super::display::{Display};
+use super::display::{X11Display};
 use super::XlibHandle;
 
 pub const XLIB_NONE: xlib::XID = 0;
@@ -14,7 +14,7 @@ pub const XLIB_NONE: xlib::XID = 0;
 /// UTF-8 text
 #[derive(Debug)]
 pub struct Text {
-    display_handle: Display,
+    display_handle: X11Display,
     text_property: xlib::XTextProperty,
 }
 
@@ -39,7 +39,7 @@ const X_CONVERTER_NOT_FOUND: c_int = -3;
 
 impl Text {
     /// Xutf8TextListToTextProperty
-    pub fn new(display: &Display, text: String) -> Result<Self, TextError<Self>> {
+    pub fn new(display: &X11Display, text: String) -> Result<Self, TextError<Self>> {
         let c_string = CString::new(text).map_err(|_| TextError::NulError)?;
 
         let mut one_text = c_string.as_ptr() as *mut c_char;
@@ -243,7 +243,7 @@ impl Atom {
     ///
     /// XInternAtom
     pub fn new(
-        display: &Display,
+        display: &X11Display,
         mut atom_name: AtomName,
         only_if_exists: bool,
     ) -> Result<Atom, ()> {
@@ -268,7 +268,7 @@ impl Atom {
     }
 
     /// XGetAtomName, XFree
-    pub fn get_name(&self, display: &Display) -> Result<String, ()> {
+    pub fn get_name(&self, display: &X11Display) -> Result<String, ()> {
         let text_ptr = unsafe {
             xlib_function!(
                 display.xlib_handle(),

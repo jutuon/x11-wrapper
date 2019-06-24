@@ -7,7 +7,7 @@ use std::sync::Mutex;
 use std::process;
 use std::mem;
 
-use super::display::Display;
+use super::display::X11Display;
 use super::XlibHandle;
 
 use x11::xlib;
@@ -163,7 +163,7 @@ pub(crate) fn set_xlib_error_handler(_xlib_handle: &XlibHandle) {
 /// function, the function will simply discard the new error.
 ///
 /// XGetErrorText
-pub fn check_error(display: &Display) -> Option<ErrorEventAndText> {
+pub fn check_error(display: &X11Display) -> Option<ErrorEventAndText> {
     let mut buffer = ERROR_BUFFER.lock().unwrap();
     buffer.take().map(|error_event| {
         if mem::size_of::<c_char>() != 8 {

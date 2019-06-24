@@ -1,7 +1,7 @@
 use x11::xlib;
 
 use super::screen::Screen;
-use super::display::Display;
+use super::display::X11Display;
 use super::visual::Visual;
 
 pub struct DefaultColormap(xlib::XID);
@@ -28,7 +28,7 @@ impl ColormapID for DefaultColormap {
 
 #[derive(Debug)]
 pub struct CreatedColormap {
-    display_handle: Display,
+    display_handle: X11Display,
     colormap: xlib::Colormap,
 }
 
@@ -37,7 +37,7 @@ impl CreatedColormap {
     ///
     /// XCreateColormap - BadAlloc, BadMatch, BadValue, BadWindow
     pub(crate) fn create(
-        display_handle: Display,
+        display_handle: X11Display,
         screen: &Screen,
         visual: &Visual,
     ) -> Result<CreatedColormap, ()> {

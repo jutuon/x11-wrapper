@@ -3,18 +3,18 @@ use std::mem;
 
 use x11::xlib;
 
-use super::display::Display;
+use super::display::X11Display;
 
 #[derive(Debug)]
 pub struct Visual {
-    display_handle: Display,
+    display_handle: X11Display,
     visual_info: xlib::XVisualInfo,
 }
 
 impl Visual {
     /// XGetVisualInfo, XFree
     pub(crate) fn new(
-        display_handle: Display,
+        display_handle: X11Display,
         visual_id: xlib::VisualID,
     ) -> Option<Self> {
         let mut template: xlib::XVisualInfo = unsafe { mem::zeroed() };
