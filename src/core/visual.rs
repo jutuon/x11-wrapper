@@ -1,21 +1,20 @@
 use std::os::raw::{c_int, c_void};
-use std::sync::Arc;
 use std::mem;
 
 use x11::xlib;
 
-use super::display::DisplayHandle;
+use super::display::Display;
 
 #[derive(Debug)]
 pub struct Visual {
-    display_handle: Arc<DisplayHandle>,
+    display_handle: Display,
     visual_info: xlib::XVisualInfo,
 }
 
 impl Visual {
     /// XGetVisualInfo, XFree
     pub(crate) fn new(
-        display_handle: Arc<DisplayHandle>,
+        display_handle: Display,
         visual_id: xlib::VisualID,
     ) -> Option<Self> {
         let mut template: xlib::XVisualInfo = unsafe { mem::zeroed() };

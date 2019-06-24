@@ -41,7 +41,10 @@ pub struct XlibHandle;
 #[cfg(feature = "runtime-linking")]
 #[derive(Clone)]
 pub struct XlibHandle {
+    #[cfg(feature = "multithreading")]
     pub(crate) functions: ::std::sync::Arc<::x11::xlib::Xlib>,
+    #[cfg(not(feature = "multithreading"))]
+    pub(crate) functions: ::std::rc::Rc<::x11::xlib::Xlib>,
 }
 
 impl fmt::Debug for XlibHandle {
@@ -61,15 +64,24 @@ impl XlibHandle {
         let functions = ::x11::xlib::Xlib::open()
             .map_err(|e| XlibInitError::LibraryLoadingError(e.detail().to_string()))?;
 
+        #[cfg(feature = "multithreading")]
+        let functions = std::sync::Arc::new(functions);
+
+        #[cfg(not(feature = "multithreading"))]
+        let functions = std::rc::Rc::new(functions);
+
         Ok(XlibHandle {
-            functions: ::std::sync::Arc::new(functions),
+            functions
         })
     }
 
     /// Initialize Xlib. This function will return error if
     /// `XlibHandle` is already created.
     ///
-    /// XInitThreads, XSetErrorHandler
+    /// XSetErrorHandler
+    ///
+    /// If Cargo feature `multithreading` is enabled function
+    /// XInitThreads is also called.
     pub fn initialize_xlib() -> Result<Self, XlibInitError> {
         let mut guard = INIT_FLAG.lock().unwrap();
 
@@ -78,10 +90,13 @@ impl XlibHandle {
         } else {
             let xlib_handle = Self::new()?;
 
-            let status = unsafe { xlib_function!(&xlib_handle, XInitThreads(None)) };
+            #[cfg(feature = "multithreading")]
+            {
+                let status = unsafe { xlib_function!(&xlib_handle, XInitThreads(None)) };
 
-            if status == 0 {
-                return Err(XlibInitError::XInitThreadsError);
+                if status == 0 {
+                    return Err(XlibInitError::XInitThreadsError);
+                }
             }
 
             error::set_xlib_error_handler(&xlib_handle);
@@ -100,5 +115,7 @@ impl XlibHandle {
     }
 }
 
+#[cfg(feature = "multithreading")]
 unsafe impl Send for XlibHandle {}
+#[cfg(feature = "multithreading")]
 unsafe impl Sync for XlibHandle {}

@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use x11::xlib;
 
 use super::screen::Screen;
-use super::display::DisplayHandle;
+use super::display::Display;
 use super::visual::Visual;
 
 pub struct DefaultColormap(xlib::XID);
@@ -30,7 +28,7 @@ impl ColormapID for DefaultColormap {
 
 #[derive(Debug)]
 pub struct CreatedColormap {
-    display_handle: Arc<DisplayHandle>,
+    display_handle: Display,
     colormap: xlib::Colormap,
 }
 
@@ -39,7 +37,7 @@ impl CreatedColormap {
     ///
     /// XCreateColormap - BadAlloc, BadMatch, BadValue, BadWindow
     pub(crate) fn create(
-        display_handle: Arc<DisplayHandle>,
+        display_handle: Display,
         screen: &Screen,
         visual: &Visual,
     ) -> Result<CreatedColormap, ()> {

@@ -1,22 +1,21 @@
 use std::os::raw::{c_int, c_ulong};
-use std::sync::Arc;
 
 use x11::xlib;
 
 use super::color::DefaultColormap;
-use super::display::DisplayHandle;
+use super::display::Display;
 use super::error::{QueryError, QueryResult};
 use super::visual::Visual;
 use super::event::{send_event, ClientMessageEventCreator, EventMask};
 use super::XlibHandle;
 
 pub struct Screen {
-    display_handle: Arc<DisplayHandle>,
+    display_handle: Display,
     raw_screen: *mut xlib::Screen,
 }
 
 impl Screen {
-    pub(crate) fn new(display_handle: Arc<DisplayHandle>, raw_screen: *mut xlib::Screen) -> Self {
+    pub(crate) fn new(display_handle: Display, raw_screen: *mut xlib::Screen) -> Self {
         Self {
             display_handle,
             raw_screen,
@@ -31,7 +30,7 @@ impl Screen {
         self.display_handle.xlib_handle()
     }
 
-    pub(crate) fn display_handle(&self) -> &Arc<DisplayHandle> {
+    pub(crate) fn display_handle(&self) -> &Display {
         &self.display_handle
     }
 

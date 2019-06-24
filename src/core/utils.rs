@@ -3,11 +3,10 @@ use std::os::raw::{c_char, c_int, c_void};
 use std::mem;
 use std::ptr;
 use std::slice;
-use std::sync::Arc;
 
 use x11::xlib;
 
-use super::display::{Display, DisplayHandle};
+use super::display::{Display};
 use super::XlibHandle;
 
 pub const XLIB_NONE: xlib::XID = 0;
@@ -15,7 +14,7 @@ pub const XLIB_NONE: xlib::XID = 0;
 /// UTF-8 text
 #[derive(Debug)]
 pub struct Text {
-    display_handle: Arc<DisplayHandle>,
+    display_handle: Display,
     text_property: xlib::XTextProperty,
 }
 
@@ -62,7 +61,7 @@ impl Text {
 
         match status {
             0 => Ok(Self {
-                display_handle: display.display_handle().clone(),
+                display_handle: display.clone(),
                 text_property,
             }),
             X_NO_MEMORY => {
@@ -79,7 +78,7 @@ impl Text {
             }
             value => {
                 let text = Self {
-                    display_handle: display.display_handle().clone(),
+                    display_handle: display.clone(),
                     text_property,
                 };
                 Err(TextError::UnconvertedCharacters(value, text))

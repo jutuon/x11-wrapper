@@ -1,14 +1,13 @@
 //! InputOutput windows.
 
 use std::os::raw::{c_int, c_uint};
-use std::sync::Arc;
 
 use x11::xlib;
 
 use super::attribute::*;
 use super::{Selection, Window, WindowProperties};
 
-use core::display::DisplayHandle;
+use core::display::Display;
 use core::color::{ColormapID, CreatedColormap};
 use core::visual::Visual;
 use core::screen::Screen;
@@ -18,7 +17,7 @@ pub struct BuildTopLevelWindow;
 
 #[derive(Debug)]
 pub struct InputOutputWindowBuilder<T> {
-    display_handle: Arc<DisplayHandle>,
+    display_handle: Display,
     attributes: WindowAttributes,
     colormap_and_visual: Option<(CreatedColormap, Visual)>,
     parent_window_id: xlib::Window,
@@ -165,7 +164,7 @@ impl InputOutputWindowBuilder<BuildTopLevelWindow> {
 
 #[derive(Debug)]
 pub struct TopLevelInputOutputWindow {
-    display_handle: Arc<DisplayHandle>,
+    display_handle: Display,
     colormap: Option<CreatedColormap>,
     window_id: xlib::Window,
     attributes: WindowAttributes,

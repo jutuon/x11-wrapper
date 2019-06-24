@@ -1,6 +1,5 @@
 use std::ptr;
 use std::os::raw::{c_int, c_long, c_ulong};
-use std::sync::Arc;
 use std::marker::PhantomData;
 use std::ffi::CStr;
 
@@ -11,32 +10,29 @@ use super::screen::Screen;
 use super::visual::Visual;
 use super::event::{send_event, EventBuffer, EventCreator, EventMask, RawEvent};
 
+#[cfg(feature = "multithreading")]
+unsafe impl Send for DisplayHandle {}
+#[cfg(feature = "multithreading")]
+unsafe impl Sync for DisplayHandle {}
+
 /// Stores `XlibHandle` and Xlib display pointer.
 #[derive(Debug)]
-pub struct DisplayHandle {
+struct DisplayHandle {
     xlib_handle: XlibHandle,
     raw_display: *mut xlib::Display,
     _marker: PhantomData<xlib::Display>,
 }
 
 impl DisplayHandle {
-    pub(crate) fn new_in_arc(
+    fn new(
         raw_display: *mut xlib::Display,
         xlib_handle: XlibHandle,
-    ) -> Arc<DisplayHandle> {
-        Arc::new(DisplayHandle {
+    ) -> Self {
+        Self {
             xlib_handle,
             raw_display,
             _marker: PhantomData,
-        })
-    }
-
-    pub(crate) fn raw_display(&self) -> *mut xlib::Display {
-        self.raw_display
-    }
-
-    pub(crate) fn xlib_handle(&self) -> &XlibHandle {
-        &self.xlib_handle
+        }
     }
 }
 
@@ -46,7 +42,7 @@ impl Drop for DisplayHandle {
     /// XCloseDisplay - BadGC
     fn drop(&mut self) {
         unsafe {
-            xlib_function!(self.xlib_handle(), XCloseDisplay(Some(self.raw_display)));
+            xlib_function!(&self.xlib_handle, XCloseDisplay(Some(self.raw_display)));
 
             // TODO: check BadGC error
         }
@@ -54,8 +50,12 @@ impl Drop for DisplayHandle {
 }
 
 /// Connection to X11 server.
+#[derive(Debug, Clone)]
 pub struct Display {
-    display_handle: Arc<DisplayHandle>,
+    #[cfg(feature = "multithreading")]
+    display_handle: std::sync::Arc<DisplayHandle>,
+    #[cfg(not(feature = "multithreading"))]
+    display_handle: std::rc::Rc<DisplayHandle>,
 }
 
 impl Display {
@@ -69,17 +69,19 @@ impl Display {
             return Err(());
         }
 
+        #[cfg(feature = "multithreading")]
+        let display_handle = std::sync::Arc::new(DisplayHandle::new(raw_display, xlib_handle));
+
+        #[cfg(not(feature = "multithreading"))]
+        let display_handle = std::rc::Rc::new(DisplayHandle::new(raw_display, xlib_handle));
+
         Ok(Self {
-            display_handle: DisplayHandle::new_in_arc(raw_display, xlib_handle),
+            display_handle
         })
     }
 
-    pub fn display_handle(&self) -> &Arc<DisplayHandle> {
-        &self.display_handle
-    }
-
     pub fn xlib_handle(&self) -> &XlibHandle {
-        self.display_handle().xlib_handle()
+        &self.display_handle.xlib_handle
     }
 
     pub fn raw_display(&self) -> *mut xlib::Display {
@@ -100,7 +102,7 @@ impl Display {
             )
         };
 
-        Screen::new(self.display_handle.clone(), screen)
+        Screen::new(self.clone(), screen)
     }
 
     // TODO: Implement XScreenOfDisplay
@@ -207,7 +209,7 @@ impl Display {
 
     /// XGetVisualInfo, XFree
     pub fn visual_from_id(&self, visual_id: xlib::VisualID) -> Option<Visual> {
-        Visual::new(self.display_handle.clone(), visual_id)
+        Visual::new(self.clone(), visual_id)
     }
 
     /// XFlush
@@ -271,7 +273,7 @@ impl Display {
         event_creator: &mut T,
     ) -> Result<(), ()> {
         send_event(
-            self.display_handle(),
+            self,
             window_id,
             propagate,
             event_mask,
