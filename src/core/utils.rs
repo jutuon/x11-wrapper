@@ -307,6 +307,7 @@ impl Atom {
 /// In C language, minimum requirement for int type is 16 bits, so
 /// if atom count will be equal or less than `i16::max_value()` you
 /// don't have to worry about panics from `add` method.
+#[derive(Clone)]
 pub struct AtomList(Vec<Atom>);
 
 impl AtomList {
