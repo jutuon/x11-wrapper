@@ -313,7 +313,7 @@ pub trait WindowProperties: Window {
                     // We want all data so lets use value (c_long::max_value() / 4)
                     // as argument because xlib uses long_length argument like this
                     // L = MINIMUM(T, 4 * long_length)
-                    (c_long::max_value() / 4),
+                    c_long::max_value() / 4,
                     to_xlib_bool(is_deleted),
                     property_type.to_xlib_property_function_parameter(),
                     &mut actual_type_return,
